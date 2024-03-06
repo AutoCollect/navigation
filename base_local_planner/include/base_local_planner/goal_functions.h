@@ -104,6 +104,10 @@ namespace base_local_planner {
       const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
+  double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
+                               const geometry_msgs::PoseStamped& p2, 
+                               const geometry_msgs::PoseStamped& p3);
+
   /**
    * @brief  Returns last pose in plan
    * @param tf A reference to a transform listener
