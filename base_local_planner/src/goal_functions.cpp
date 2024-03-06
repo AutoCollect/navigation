@@ -84,13 +84,28 @@ namespace base_local_planner {
       double x_diff = global_pose.pose.position.x - w.pose.position.x;
       double y_diff = global_pose.pose.position.y - w.pose.position.y;
       double distance_sq = x_diff * x_diff + y_diff * y_diff;
-      if(distance_sq < 1){
+      if(distance_sq < 0.2){
         ROS_DEBUG("Nearest waypoint to <%f, %f> is <%f, %f>\n", global_pose.pose.position.x, global_pose.pose.position.y, w.pose.position.x, w.pose.position.y);
         break;
       }
       it = plan.erase(it);
       global_it = global_plan.erase(global_it);
     }
+  }
+
+  double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
+                               const geometry_msgs::PoseStamped& p2, 
+                               const geometry_msgs::PoseStamped& p3) {
+
+    double fAreaOfTriangle = fabs((p1.pose.position.x * (p2.pose.position.y - p3.pose.position.y) + 
+                                   p2.pose.position.x * (p3.pose.position.y - p1.pose.position.y) + 
+                                   p3.pose.position.x * (p1.pose.position.y - p2.pose.position.y)) * 0.5);
+        
+    double fDist12 = hypot(p1.pose.position.x - p2.pose.position.x, p1.pose.position.y - p2.pose.position.y);
+    double fDist23 = hypot(p2.pose.position.x - p3.pose.position.x, p2.pose.position.y - p3.pose.position.y);
+    double fDist13 = hypot(p1.pose.position.x - p3.pose.position.x, p1.pose.position.y - p3.pose.position.y);
+    double fKappa  = 4 * fAreaOfTriangle / (fDist12 * fDist23 * fDist13);
+    return fKappa;
   }
 
   bool transformGlobalPlan(
@@ -137,11 +152,37 @@ namespace base_local_planner {
       }
 
       geometry_msgs::PoseStamped newer_pose;
+      double current_curvature  = -1000.0;
+      double previous_curvature = -1000.0;
+      bool   init_flag          = false;
+      double previous_delta     = 0.0;
 
       //now we'll transform until points are outside of our distance threshold
       while(i < (unsigned int)global_plan.size() && sq_dist <= sq_dist_threshold) {
         const geometry_msgs::PoseStamped& pose = global_plan[i];
         tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+
+        if (i > 0 && i < (global_plan.size() - 2)) {
+          current_curvature = curvatureFrom3Points(global_plan[i], global_plan[i+1], global_plan[i+2]);
+
+          if (!init_flag) {
+            previous_curvature = current_curvature;
+            init_flag = true;
+          }
+
+          double current_delta = abs(previous_curvature - current_curvature);
+
+          if (!std::isnan(current_curvature)  &&
+              !std::isnan(previous_curvature) &&
+              current_delta > 0.15 && 
+              previous_delta > 0.1 &&
+              previous_curvature > 0.1) {
+              sq_dist_threshold = 0.5;
+          }
+
+          previous_curvature = current_curvature;
+          previous_delta = current_delta;
+        }
 
         transformed_plan.push_back(newer_pose);
 

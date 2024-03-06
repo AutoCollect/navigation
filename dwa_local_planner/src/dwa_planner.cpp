@@ -323,7 +323,8 @@ namespace dwa_local_planner {
     if(publish_traj_pc_)
     {
         sensor_msgs::PointCloud2 traj_cloud;
-        traj_cloud.header.frame_id = frame_id_;
+        traj_cloud.header.frame_id = "map";
+
         traj_cloud.header.stamp = ros::Time::now();
 
         sensor_msgs::PointCloud2Modifier cloud_mod(traj_cloud);
