@@ -53,6 +53,8 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/utils.h>
 
+#include <visualization_msgs/Marker.h>
+
 using namespace std;
 using namespace costmap_2d;
 
@@ -153,7 +155,8 @@ namespace base_local_planner{
       double max_vel_th, double min_vel_th, double min_in_place_vel_th,
       double backup_vel,
       bool dwa, bool heading_scoring, double heading_scoring_timestep, bool meter_scoring, bool simple_attractor,
-      vector<double> y_vels, double stop_time_buffer, double sim_period, double angular_sim_granularity)
+      vector<double> y_vels, double stop_time_buffer, double sim_period, double angular_sim_granularity,
+      std::string global_frame)
     : path_map_(costmap.getSizeInCellsX(), costmap.getSizeInCellsY()),
       goal_map_(costmap.getSizeInCellsX(), costmap.getSizeInCellsY()),
       costmap_(costmap),
@@ -169,7 +172,8 @@ namespace base_local_planner{
     max_vel_th_(max_vel_th), min_vel_th_(min_vel_th), min_in_place_vel_th_(min_in_place_vel_th),
     backup_vel_(backup_vel),
     dwa_(dwa), heading_scoring_(heading_scoring), heading_scoring_timestep_(heading_scoring_timestep),
-    simple_attractor_(simple_attractor), y_vels_(y_vels), stop_time_buffer_(stop_time_buffer), sim_period_(sim_period)
+    simple_attractor_(simple_attractor), y_vels_(y_vels), stop_time_buffer_(stop_time_buffer), sim_period_(sim_period),
+    global_frame_(global_frame)
   {
     //the robot is not stuck to begin with
     stuck_left = false;
@@ -186,6 +190,29 @@ namespace base_local_planner{
 
 
     costmap_2d::calculateMinAndMaxDistances(footprint_spec_, inscribed_radius_, circumscribed_radius_);
+
+    ros::NodeHandle nh("~");
+    trajectories_pub_ = nh.advertise<visualization_msgs::Marker>("tra_candidates", 10);
+
+    trajectories_.header.frame_id = global_frame_; // "map" or "odom"
+    trajectories_.action  = visualization_msgs::Marker::ADD;
+    trajectories_.type    = visualization_msgs::Marker::POINTS;
+    trajectories_.scale.x = 0.01;
+    trajectories_.scale.y = 0.01;
+    trajectories_.scale.z = 0.01;
+    trajectories_.color.a = 1.0;
+    trajectories_.color.b = 1.0;
+
+    local_goal_pub_ = nh.advertise<visualization_msgs::Marker>("local_goal", 10);
+
+    local_goal_.header.frame_id = global_frame_; // "map" or "odom"
+    local_goal_.action  = visualization_msgs::Marker::ADD;
+    local_goal_.type    = visualization_msgs::Marker::POINTS;
+    local_goal_.scale.x = 0.1;
+    local_goal_.scale.y = 0.1;
+    local_goal_.scale.z = 0.1;
+    local_goal_.color.a = 1.0;
+    local_goal_.color.r = 1.0;
   }
 
   TrajectoryPlanner::~TrajectoryPlanner(){}
@@ -271,6 +298,7 @@ namespace base_local_planner{
       //we don't want a path that goes off the know map
       if(!costmap_.worldToMap(x_i, y_i, cell_x, cell_y)){
         traj.cost_ = -1.0;
+        ROS_WARN("we don't want a path that goes off the know map");
         return;
       }
 
@@ -278,31 +306,31 @@ namespace base_local_planner{
       double footprint_cost = footprintCost(x_i, y_i, theta_i);
 
       //if the footprint hits an obstacle this trajectory is invalid
-      if(footprint_cost < 0){
-        traj.cost_ = -1.0;
-        return;
-        //TODO: Really look at getMaxSpeedToStopInTime... dues to discretization errors and high acceleration limits,
-        //it can actually cause the robot to hit obstacles. There may be something to be done to fix, but I'll have to
-        //come back to it when I have time. Right now, pulling it out as it'll just make the robot a bit more conservative,
-        //but safe.
-        /*
-        double max_vel_x, max_vel_y, max_vel_th;
-        //we want to compute the max allowable speeds to be able to stop
-        //to be safe... we'll make sure we can stop some time before we actually hit
-        getMaxSpeedToStopInTime(time - stop_time_buffer_ - dt, max_vel_x, max_vel_y, max_vel_th);
+      // if(footprint_cost < 0){
+      //   traj.cost_ = -1.0;
+      //   return;
+      //   //TODO: Really look at getMaxSpeedToStopInTime... dues to discretization errors and high acceleration limits,
+      //   //it can actually cause the robot to hit obstacles. There may be something to be done to fix, but I'll have to
+      //   //come back to it when I have time. Right now, pulling it out as it'll just make the robot a bit more conservative,
+      //   //but safe.
+      //   /*
+      //   double max_vel_x, max_vel_y, max_vel_th;
+      //   //we want to compute the max allowable speeds to be able to stop
+      //   //to be safe... we'll make sure we can stop some time before we actually hit
+      //   getMaxSpeedToStopInTime(time - stop_time_buffer_ - dt, max_vel_x, max_vel_y, max_vel_th);
 
-        //check if we can stop in time
-        if(fabs(vx_samp) < max_vel_x && fabs(vy_samp) < max_vel_y && fabs(vtheta_samp) < max_vel_th){
-          ROS_ERROR("v: (%.2f, %.2f, %.2f), m: (%.2f, %.2f, %.2f) t:%.2f, st: %.2f, dt: %.2f", vx_samp, vy_samp, vtheta_samp, max_vel_x, max_vel_y, max_vel_th, time, stop_time_buffer_, dt);
-          //if we can stop... we'll just break out of the loop here.. no point in checking future points
-          break;
-        }
-        else{
-          traj.cost_ = -1.0;
-          return;
-        }
-        */
-      }
+      //   //check if we can stop in time
+      //   if(fabs(vx_samp) < max_vel_x && fabs(vy_samp) < max_vel_y && fabs(vtheta_samp) < max_vel_th){
+      //     ROS_ERROR("v: (%.2f, %.2f, %.2f), m: (%.2f, %.2f, %.2f) t:%.2f, st: %.2f, dt: %.2f", vx_samp, vy_samp, vtheta_samp, max_vel_x, max_vel_y, max_vel_th, time, stop_time_buffer_, dt);
+      //     //if we can stop... we'll just break out of the loop here.. no point in checking future points
+      //     break;
+      //   }
+      //   else{
+      //     traj.cost_ = -1.0;
+      //     return;
+      //   }
+      //   */
+      // }
 
       occ_cost = std::max(std::max(occ_cost, footprint_cost), double(costmap_.getCost(cell_x, cell_y)));
 
@@ -333,8 +361,8 @@ namespace base_local_planner{
 
           //if a point on this trajectory has no clear path to goal it is invalid
           if(impossible_cost <= goal_dist || impossible_cost <= path_dist){
-//            ROS_DEBUG("No path to goal with goal distance = %f, path_distance = %f and max cost = %f",
-//                goal_dist, path_dist, impossible_cost);
+          //  ROS_DEBUG("No path to goal with goal distance = %f, path_distance = %f and max cost = %f",
+          //      goal_dist, path_dist, impossible_cost);
             traj.cost_ = -2.0;
             return;
           }
@@ -344,6 +372,12 @@ namespace base_local_planner{
 
       //the point is legal... add it to the trajectory
       traj.addPoint(x_i, y_i, theta_i);
+
+      geometry_msgs::Point pt;
+      pt.x = x_i;
+      pt.y = y_i;
+      pt.z = 0.0;
+      trajectories_.points.push_back(pt);
 
       //calculate velocities
       vx_i = computeNewVelocity(vx_samp, vx_i, acc_x, dt);
@@ -488,6 +522,14 @@ namespace base_local_planner{
       final_goal_position_valid_ = false;
     }
 
+    local_goal_.points.clear();
+    geometry_msgs::Point pt;
+    pt.x = global_plan_[global_plan_.size() -1].pose.position.x;
+    pt.y = global_plan_[global_plan_.size() -1].pose.position.y;
+    pt.z = 0.0;
+    local_goal_.points.push_back(pt);
+    local_goal_pub_.publish(local_goal_);
+    
     if (compute_dists) {
       //reset the map for new operations
       path_map_.resetPathDist();
@@ -581,6 +623,8 @@ namespace base_local_planner{
     //any cell with a cost greater than the size of the map is impossible
     double impossible_cost = path_map_.obstacleCosts();
 
+    trajectories_.header.stamp = ros::Time::now();
+
     //if we're performing an escape we won't allow moving forward
     if (!escaping_) {
       //loop through all x velocities
@@ -615,34 +659,34 @@ namespace base_local_planner{
       }
 
       //only explore y velocities with holonomic robots
-      if (holonomic_robot_) {
-        //explore trajectories that move forward but also strafe slightly
-        vx_samp = 0.1;
-        vy_samp = 0.1;
-        vtheta_samp = 0.0;
-        generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
-            acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+      // if (holonomic_robot_) {
+      //   //explore trajectories that move forward but also strafe slightly
+      //   vx_samp = 0.1;
+      //   vy_samp = 0.1;
+      //   vtheta_samp = 0.0;
+      //   generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+      //       acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
 
-        //if the new trajectory is better... let's take it
-        if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
-          swap = best_traj;
-          best_traj = comp_traj;
-          comp_traj = swap;
-        }
+      //   //if the new trajectory is better... let's take it
+      //   if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
+      //     swap = best_traj;
+      //     best_traj = comp_traj;
+      //     comp_traj = swap;
+      //   }
 
-        vx_samp = 0.1;
-        vy_samp = -0.1;
-        vtheta_samp = 0.0;
-        generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
-            acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+      //   vx_samp = 0.1;
+      //   vy_samp = -0.1;
+      //   vtheta_samp = 0.0;
+      //   generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+      //       acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
 
-        //if the new trajectory is better... let's take it
-        if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
-          swap = best_traj;
-          best_traj = comp_traj;
-          comp_traj = swap;
-        }
-      }
+      //   //if the new trajectory is better... let's take it
+      //   if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
+      //     swap = best_traj;
+      //     best_traj = comp_traj;
+      //     comp_traj = swap;
+      //   }
+      // }
     } // end if not escaping
 
     //next we want to generate trajectories for rotating in place
@@ -746,54 +790,56 @@ namespace base_local_planner{
         escaping_ = false;
       }
 
+      trajectories_pub_.publish(trajectories_);
+      trajectories_.points.clear();
       return *best_traj;
     }
 
     //only explore y velocities with holonomic robots
-    if (holonomic_robot_) {
-      //if we can't rotate in place or move forward... maybe we can move sideways and rotate
-      vtheta_samp = min_vel_theta;
-      vx_samp = 0.0;
+    // if (holonomic_robot_) {
+    //   //if we can't rotate in place or move forward... maybe we can move sideways and rotate
+    //   vtheta_samp = min_vel_theta;
+    //   vx_samp = 0.0;
 
-      //loop through all y velocities
-      for(unsigned int i = 0; i < y_vels_.size(); ++i){
-        vtheta_samp = 0;
-        vy_samp = y_vels_[i];
-        //sample completely horizontal trajectories
-        generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
-            acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+    //   //loop through all y velocities
+    //   for(unsigned int i = 0; i < y_vels_.size(); ++i){
+    //     vtheta_samp = 0;
+    //     vy_samp = y_vels_[i];
+    //     //sample completely horizontal trajectories
+    //     generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+    //         acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
 
-        //if the new trajectory is better... let's take it
-        if(comp_traj->cost_ >= 0 && (comp_traj->cost_ <= best_traj->cost_ || best_traj->cost_ < 0)){
-          double x_r, y_r, th_r;
-          comp_traj->getEndpoint(x_r, y_r, th_r);
-          x_r += heading_lookahead_ * cos(th_r);
-          y_r += heading_lookahead_ * sin(th_r);
-          unsigned int cell_x, cell_y;
+    //     //if the new trajectory is better... let's take it
+    //     if(comp_traj->cost_ >= 0 && (comp_traj->cost_ <= best_traj->cost_ || best_traj->cost_ < 0)){
+    //       double x_r, y_r, th_r;
+    //       comp_traj->getEndpoint(x_r, y_r, th_r);
+    //       x_r += heading_lookahead_ * cos(th_r);
+    //       y_r += heading_lookahead_ * sin(th_r);
+    //       unsigned int cell_x, cell_y;
 
-          //make sure that we'll be looking at a legal cell
-          if(costmap_.worldToMap(x_r, y_r, cell_x, cell_y)) {
-            double ahead_gdist = goal_map_(cell_x, cell_y).target_dist;
-            if (ahead_gdist < heading_dist) {
-              //if we haven't already tried strafing left since we've moved forward
-              if (vy_samp > 0 && !stuck_left_strafe) {
-                swap = best_traj;
-                best_traj = comp_traj;
-                comp_traj = swap;
-                heading_dist = ahead_gdist;
-              }
-              //if we haven't already tried rotating right since we've moved forward
-              else if(vy_samp < 0 && !stuck_right_strafe) {
-                swap = best_traj;
-                best_traj = comp_traj;
-                comp_traj = swap;
-                heading_dist = ahead_gdist;
-              }
-            }
-          }
-        }
-      }
-    }
+    //       //make sure that we'll be looking at a legal cell
+    //       if(costmap_.worldToMap(x_r, y_r, cell_x, cell_y)) {
+    //         double ahead_gdist = goal_map_(cell_x, cell_y).target_dist;
+    //         if (ahead_gdist < heading_dist) {
+    //           //if we haven't already tried strafing left since we've moved forward
+    //           if (vy_samp > 0 && !stuck_left_strafe) {
+    //             swap = best_traj;
+    //             best_traj = comp_traj;
+    //             comp_traj = swap;
+    //             heading_dist = ahead_gdist;
+    //           }
+    //           //if we haven't already tried rotating right since we've moved forward
+    //           else if(vy_samp < 0 && !stuck_right_strafe) {
+    //             swap = best_traj;
+    //             best_traj = comp_traj;
+    //             comp_traj = swap;
+    //             heading_dist = ahead_gdist;
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
 
     //do we have a legal trajectory
     if (best_traj->cost_ >= 0) {
@@ -843,6 +889,8 @@ namespace base_local_planner{
         escaping_ = false;
       }
 
+      trajectories_pub_.publish(trajectories_);
+      trajectories_.points.clear();
       return *best_traj;
     }
 
@@ -899,6 +947,8 @@ namespace base_local_planner{
     if(best_traj->cost_ == -1.0)
       best_traj->cost_ = 1.0;
 
+    trajectories_pub_.publish(trajectories_);
+    trajectories_.points.clear();
     return *best_traj;
 
   }

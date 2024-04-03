@@ -84,12 +84,14 @@ namespace base_local_planner {
       double x_diff = global_pose.pose.position.x - w.pose.position.x;
       double y_diff = global_pose.pose.position.y - w.pose.position.y;
       double distance_sq = x_diff * x_diff + y_diff * y_diff;
-      if(distance_sq < 0.2){
+
+      it = plan.erase(it);
+      global_it = global_plan.erase(global_it);
+
+      if(distance_sq < 1.0) {
         ROS_DEBUG("Nearest waypoint to <%f, %f> is <%f, %f>\n", global_pose.pose.position.x, global_pose.pose.position.y, w.pose.position.x, w.pose.position.y);
         break;
       }
-      it = plan.erase(it);
-      global_it = global_plan.erase(global_it);
     }
   }
 
@@ -177,7 +179,7 @@ namespace base_local_planner {
               current_delta > 0.15 && 
               previous_delta > 0.1 &&
               previous_curvature > 0.1) {
-              sq_dist_threshold = 0.5;
+              sq_dist_threshold = 1.5;
           }
 
           previous_curvature = current_curvature;

@@ -1,0 +1,7 @@
+<library path="lib/libstop_recovery">
+  <class name="stop_recovery/StopRecovery" type="stop_recovery::StopRecovery" base_class_type="nav_core::RecoveryBehavior">
+    <description>
+      A recovery behavior that performs a robot stop for several seconds.
+    </description>
+  </class>
+</library>

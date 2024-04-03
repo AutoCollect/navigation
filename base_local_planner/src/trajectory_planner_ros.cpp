@@ -254,7 +254,7 @@ namespace base_local_planner {
           acc_lim_x_, acc_lim_y_, acc_lim_theta_, sim_time, sim_granularity, vx_samples, vtheta_samples, path_distance_bias,
           goal_distance_bias, occdist_scale, heading_lookahead, oscillation_reset_dist, escape_reset_dist, escape_reset_theta, holonomic_robot,
           max_vel_x, min_vel_x, max_vel_th_, min_vel_th_, min_in_place_vel_th_, backup_vel,
-          dwa, heading_scoring, heading_scoring_timestep, meter_scoring, simple_attractor, y_vels, stop_time_buffer, sim_period_, angular_sim_granularity);
+          dwa, heading_scoring, heading_scoring_timestep, meter_scoring, simple_attractor, y_vels, stop_time_buffer, sim_period_, angular_sim_granularity, global_frame_);
 
       map_viz_.initialize(name,
                           global_frame_,
@@ -398,20 +398,22 @@ namespace base_local_planner {
 
   bool TrajectoryPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel){
     if (! isInitialized()) {
-      ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
+      ROS_ERROR("[computeVelocityCommands] This planner has not been initialized, please call initialize() before using this planner");
       return false;
     }
 
     std::vector<geometry_msgs::PoseStamped> local_plan;
     geometry_msgs::PoseStamped global_pose;
     if (!costmap_ros_->getRobotPose(global_pose)) {
+      ROS_ERROR("[computeVelocityCommands] can not get RobotPose");
       return false;
     }
 
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     //get the global plan in our frame
     if (!transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, transformed_plan)) {
-      ROS_WARN("Could not transform the global plan to the frame of the controller");
+      // ROS_WARN("Could not transform the global plan to the frame of the controller");
+      ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
 
@@ -432,8 +434,10 @@ namespace base_local_planner {
     */
 
     //if the global plan passed in is empty... we won't do anything
-    if(transformed_plan.empty())
+    if(transformed_plan.empty()) {
+      ROS_ERROR("[computeVelocityCommands] transformed_plan empty");
       return false;
+    }
 
     const geometry_msgs::PoseStamped& goal_point = transformed_plan.back();
     //we assume the global goal is the last point in the global plan
@@ -477,6 +481,7 @@ namespace base_local_planner {
         //if we're not stopped yet... we want to stop... taking into account the acceleration limits of the robot
         if ( ! rotating_to_goal_ && !base_local_planner::stopped(base_odom, rot_stopped_velocity_, trans_stopped_velocity_)) {
           if ( ! stopWithAccLimits(global_pose, robot_vel, cmd_vel)) {
+            ROS_ERROR("[computeVelocityCommands] stopWithAccLimits");
             return false;
           }
         }
@@ -485,6 +490,7 @@ namespace base_local_planner {
           //set this so that we know its OK to be moving
           rotating_to_goal_ = true;
           if(!rotateToGoal(global_pose, robot_vel, goal_th, cmd_vel)) {
+            ROS_ERROR("[computeVelocityCommands] rotateToGoal");
             return false;
           }
         }
@@ -519,8 +525,9 @@ namespace base_local_planner {
 
     //if we cannot move... tell someone
     if (path.cost_ < 0) {
-      ROS_DEBUG_NAMED("trajectory_planner_ros",
-          "The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories.");
+      // ROS_DEBUG_NAMED("trajectory_planner_ros",
+      //     "The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories.");
+      ROS_ERROR("trajectory_planner_ros, The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories");
       local_plan.clear();
       publishPlan(transformed_plan, g_plan_pub_);
       publishPlan(local_plan, l_plan_pub_);

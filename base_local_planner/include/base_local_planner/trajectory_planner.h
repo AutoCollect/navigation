@@ -58,6 +58,9 @@
 #include <base_local_planner/map_cell.h>
 #include <base_local_planner/map_grid.h>
 
+#include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
+
 namespace base_local_planner {
   /**
    * @class TrajectoryPlanner
@@ -120,7 +123,8 @@ namespace base_local_planner {
           bool simple_attractor = false,
           std::vector<double> y_vels = std::vector<double>(0),
           double stop_time_buffer = 0.2,
-          double sim_period = 0.1, double angular_sim_granularity = 0.025);
+          double sim_period = 0.1, double angular_sim_granularity = 0.025,
+          std::string global_frame = "map");
 
       /**
        * @brief  Destructs a trajectory controller
@@ -379,6 +383,13 @@ namespace base_local_planner {
       double lineCost(int x0, int x1, int y0, int y1);
       double pointCost(int x, int y);
       double headingDiff(int cell_x, int cell_y, double x, double y, double heading);
+
+      ros::Publisher trajectories_pub_;
+      visualization_msgs::Marker trajectories_;
+
+      ros::Publisher local_goal_pub_;
+      visualization_msgs::Marker local_goal_;
+      std::string global_frame_; ///< @brief The frame in which the controller will run
   };
 };
 
