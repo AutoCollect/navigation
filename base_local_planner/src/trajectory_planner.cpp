@@ -331,8 +331,13 @@ namespace base_local_planner{
       //   }
       //   */
       // }
-
-      occ_cost = std::max(std::max(occ_cost, footprint_cost), double(costmap_.getCost(cell_x, cell_y)));
+	  if (footprint_cost == -1) {
+        traj.cost_ = -2.0;
+        return;
+      }
+      else {
+        occ_cost += footprint_cost;
+      }
 
       //do we want to follow blindly
       if (simple_attractor_) {
@@ -358,14 +363,6 @@ namespace base_local_planner{
           //update path and goal distances
           path_dist = path_map_(cell_x, cell_y).target_dist;
           goal_dist = goal_map_(cell_x, cell_y).target_dist;
-
-          //if a point on this trajectory has no clear path to goal it is invalid
-          if(impossible_cost <= goal_dist || impossible_cost <= path_dist){
-          //  ROS_DEBUG("No path to goal with goal distance = %f, path_distance = %f and max cost = %f",
-          //      goal_dist, path_dist, impossible_cost);
-            traj.cost_ = -2.0;
-            return;
-          }
         }
       }
 

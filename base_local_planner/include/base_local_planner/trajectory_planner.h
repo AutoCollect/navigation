@@ -211,6 +211,15 @@ namespace base_local_planner {
       geometry_msgs::Polygon getFootprintPolygon() const { return costmap_2d::toPolygon(footprint_spec_); }
       std::vector<geometry_msgs::Point> getFootprint() const { return footprint_spec_; }
 
+      /**
+       * @brief  Checks the legality of the robot footprint at a position and orientation using the world model
+       * @param x_i The x position of the robot 
+       * @param y_i The y position of the robot 
+       * @param theta_i The orientation of the robot
+       * @return 
+       */
+      double footprintCost(double x_i, double y_i, double theta_i);
+
     private:
       /**
        * @brief  Create the trajectories we wish to explore, score them, and return the best option
@@ -248,15 +257,6 @@ namespace base_local_planner {
       void generateTrajectory(double x, double y, double theta, double vx, double vy, 
           double vtheta, double vx_samp, double vy_samp, double vtheta_samp, double acc_x, double acc_y,
           double acc_theta, double impossible_cost, Trajectory& traj);
-
-      /**
-       * @brief  Checks the legality of the robot footprint at a position and orientation using the world model
-       * @param x_i The x position of the robot 
-       * @param y_i The y position of the robot 
-       * @param theta_i The orientation of the robot
-       * @return 
-       */
-      double footprintCost(double x_i, double y_i, double theta_i);
 
       base_local_planner::FootprintHelper footprint_helper_;
     

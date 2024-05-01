@@ -38,6 +38,7 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <costmap_2d/cost_values.h>
 #ifdef _MSC_VER
 #define GOAL_ATTRIBUTE_UNUSED
 #else
@@ -77,20 +78,87 @@ namespace base_local_planner {
   void prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan){
     ROS_ASSERT(global_plan.size() >= plan.size());
     std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin();
-    std::vector<geometry_msgs::PoseStamped>::iterator global_it = global_plan.begin();
+    const geometry_msgs::PoseStamped& init_waypoint = *it;
+
+    double x_diff = global_pose.pose.position.x - init_waypoint.pose.position.x;
+    double y_diff = global_pose.pose.position.y - init_waypoint.pose.position.y;
+    double min_distance = hypot(x_diff, y_diff);
+
+    unsigned int erase_index = 0;
+    ++ it;
+
     while(it != plan.end()){
-      const geometry_msgs::PoseStamped& w = *it;
-      // Fixed error bound of 2 meters for now. Can reduce to a portion of the map size or based on the resolution
-      double x_diff = global_pose.pose.position.x - w.pose.position.x;
-      double y_diff = global_pose.pose.position.y - w.pose.position.y;
-      double distance_sq = x_diff * x_diff + y_diff * y_diff;
 
-      it = plan.erase(it);
-      global_it = global_plan.erase(global_it);
+      const geometry_msgs::PoseStamped& waypoint = *it;
+      double x_diff = global_pose.pose.position.x - waypoint.pose.position.x;
+      double y_diff = global_pose.pose.position.y - waypoint.pose.position.y;
+      double distance = hypot(x_diff, y_diff);
 
-      if(distance_sq < 1.0) {
-        ROS_DEBUG("Nearest waypoint to <%f, %f> is <%f, %f>\n", global_pose.pose.position.x, global_pose.pose.position.y, w.pose.position.x, w.pose.position.y);
+      if (distance < min_distance) {
+        min_distance = distance;
+        ++ erase_index;
+      }
+      else {
         break;
+      }
+
+      ++ it;
+    }
+
+    if (erase_index > 0) {
+      plan.erase(plan.begin(), plan.begin() + erase_index);
+      global_plan.erase(global_plan.begin(), global_plan.begin() + erase_index);
+    }
+  }
+
+  void prunePlan(const geometry_msgs::PoseStamped& global_pose,
+                 const geometry_msgs::PoseStamped& robot_vel,
+                 std::vector<geometry_msgs::PoseStamped>& plan,
+                 std::vector<geometry_msgs::PoseStamped>& global_plan) {
+
+    ROS_ASSERT(global_plan.size() >= plan.size());
+    std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin();
+    const geometry_msgs::PoseStamped& init_waypoint = *it;
+
+    double x_diff = global_pose.pose.position.x - init_waypoint.pose.position.x;
+    double y_diff = global_pose.pose.position.y - init_waypoint.pose.position.y;
+    double min_distance = hypot(x_diff, y_diff);
+
+    unsigned int erase_index = 0;
+    ++ it;
+
+    while(it != plan.end()){
+
+      const geometry_msgs::PoseStamped& waypoint = *it;
+      double x_diff = global_pose.pose.position.x - waypoint.pose.position.x;
+      double y_diff = global_pose.pose.position.y - waypoint.pose.position.y;
+      double distance = hypot(x_diff, y_diff);
+
+      if (distance < min_distance) {
+        min_distance = distance;
+        ++ erase_index;
+      }
+      else {
+        break;
+      }
+
+      ++ it;
+    }
+
+    if (erase_index > 0) {
+      plan.erase(plan.begin(), plan.begin() + erase_index);
+      global_plan.erase(global_plan.begin(), global_plan.begin() + erase_index);
+    }
+    else {
+  
+      double vel_x   = robot_vel.pose.position.x;
+      double vel_yaw = tf2::getYaw(robot_vel.pose.orientation);
+      const double zero_vx_threshold = 0.01;
+      const double zero_vw_threshold = 0.01;
+
+      if (fabs(vel_x) > zero_vx_threshold || fabs(vel_yaw) > zero_vw_threshold) {
+         plan.erase(plan.begin());
+         global_plan.erase(global_plan.begin());
       }
     }
   }
@@ -142,17 +210,6 @@ namespace base_local_planner {
       double sq_dist_threshold = dist_threshold * dist_threshold;
       double sq_dist = 0;
 
-      //we need to loop to a point on the plan that is within a certain distance of the robot
-      while(i < (unsigned int)global_plan.size()) {
-        double x_diff = robot_pose.pose.position.x - global_plan[i].pose.position.x;
-        double y_diff = robot_pose.pose.position.y - global_plan[i].pose.position.y;
-        sq_dist = x_diff * x_diff + y_diff * y_diff;
-        if (sq_dist <= sq_dist_threshold) {
-          break;
-        }
-        ++i;
-      }
-
       geometry_msgs::PoseStamped newer_pose;
       double current_curvature  = -1000.0;
       double previous_curvature = -1000.0;
@@ -193,6 +250,25 @@ namespace base_local_planner {
         sq_dist = x_diff * x_diff + y_diff * y_diff;
 
         ++i;
+      }
+      unsigned int temp_mx, temp_my;
+      if (!transformed_plan.empty() && 
+        costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) {
+        unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
+
+        if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+          int global_plan_size = global_plan.size() - 1;
+          for (int test_idx = 0; test_idx <= 200; test_idx++) {
+            if (i >= global_plan_size) {
+              break;
+            }
+            const geometry_msgs::PoseStamped& pose = global_plan[i];
+            geometry_msgs::PoseStamped newer_pose;
+            tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+            transformed_plan.push_back(newer_pose);
+            ++i;
+          }
+        }
       }
     }
     catch(tf2::LookupException& ex) {
