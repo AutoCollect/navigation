@@ -409,6 +409,11 @@ namespace base_local_planner {
       return false;
     }
 
+    double footprint_cost = tc_->footprintCost(global_pose.pose.position.x, global_pose.pose.position.y, tf2::getYaw(global_pose.pose.orientation));
+    if (footprint_cost == costmap_2d::LETHAL_OBSTACLE) {
+      return false;
+    }
+
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
     //get the global plan in our frame
     if (!transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, transformed_plan)) {
@@ -417,15 +422,14 @@ namespace base_local_planner {
       return false;
     }
 
+    geometry_msgs::PoseStamped robot_vel;
+    odom_helper_.getRobotVel(robot_vel);
     //now we'll prune the plan based on the position of the robot
     if(prune_plan_)
-      prunePlan(global_pose, transformed_plan, global_plan_);
+      prunePlan(global_pose, robot_vel, transformed_plan, global_plan_);
 
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
-
-    geometry_msgs::PoseStamped robot_vel;
-    odom_helper_.getRobotVel(robot_vel);
 
     /* For timing uncomment
     struct timeval start, end;
@@ -509,7 +513,7 @@ namespace base_local_planner {
     //compute what trajectory to drive along
     Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
 
-    map_viz_.publishCostCloud(costmap_);
+    // map_viz_.publishCostCloud(costmap_);
     /* For timing uncomment
     gettimeofday(&end, NULL);
     start_t = start.tv_sec + double(start.tv_usec) / 1e6;

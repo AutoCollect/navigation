@@ -87,6 +87,8 @@ namespace base_local_planner {
    */
   void prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan);
 
+  void prunePlan(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
+
   /**
    * @brief  Transforms the global plan of the robot from the planner frame to the frame of the costmap,
    * selects only the (first) part of the plan that is within the costmap area.
