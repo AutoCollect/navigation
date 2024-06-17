@@ -208,6 +208,7 @@ namespace base_local_planner {
       bool prune_plan_;
       boost::recursive_mutex odom_lock_;
 
+      double min_vel_x_;
       double max_vel_th_, min_vel_th_;
       double acc_lim_x_, acc_lim_y_, acc_lim_theta_;
       double sim_period_;

@@ -103,6 +103,7 @@ bool LocalPlannerUtil::setPlan(const std::vector<geometry_msgs::PoseStamped>& or
 }
 
 bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& transformed_plan) {
+  bool flag = false;
   //get the global plan in our frame
   if(!base_local_planner::transformGlobalPlan(
       *tf_,
@@ -110,7 +111,8 @@ bool LocalPlannerUtil::getLocalPlan(const geometry_msgs::PoseStamped& global_pos
       global_pose,
       *costmap_,
       global_frame_,
-      transformed_plan)) {
+      transformed_plan,
+      flag)) {
     ROS_WARN("Could not transform the global plan to the frame of the controller");
     return false;
   }

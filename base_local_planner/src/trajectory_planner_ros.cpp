@@ -210,6 +210,7 @@ namespace base_local_planner {
       private_nh.param("holonomic_robot", holonomic_robot, true);
       private_nh.param("max_vel_x", max_vel_x, 0.5);
       private_nh.param("min_vel_x", min_vel_x, 0.1);
+      min_vel_x_ = min_vel_x;
 
       double max_rotational_vel;
       private_nh.param("max_rotational_vel", max_rotational_vel, 1.0);
@@ -415,13 +416,19 @@ namespace base_local_planner {
     }
 
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
+    bool flag = false;
     //get the global plan in our frame
-    if (!transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, transformed_plan)) {
-      // ROS_WARN("Could not transform the global plan to the frame of the controller");
+    if (!transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, transformed_plan, flag)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
 
+    tc_->setMinVelocityX(0.0);
+
+    if (flag) {
+      tc_->setMinVelocityX(min_vel_x_);
+    }
+	
     geometry_msgs::PoseStamped robot_vel;
     odom_helper_.getRobotVel(robot_vel);
     //now we'll prune the plan based on the position of the robot
@@ -431,19 +438,13 @@ namespace base_local_planner {
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
 
-    /* For timing uncomment
-    struct timeval start, end;
-    double start_t, end_t, t_diff;
-    gettimeofday(&start, NULL);
-    */
-
     //if the global plan passed in is empty... we won't do anything
     if(transformed_plan.empty()) {
       ROS_ERROR("[computeVelocityCommands] transformed_plan empty");
       return false;
     }
 
-    const geometry_msgs::PoseStamped& goal_point = transformed_plan.back();
+    const geometry_msgs::PoseStamped& goal_point = global_plan_.back();
     //we assume the global goal is the last point in the global plan
     const double goal_x = goal_point.pose.position.x;
     const double goal_y = goal_point.pose.position.y;
@@ -513,7 +514,6 @@ namespace base_local_planner {
     //compute what trajectory to drive along
     Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
 
-    // map_viz_.publishCostCloud(costmap_);
     /* For timing uncomment
     gettimeofday(&end, NULL);
     start_t = start.tv_sec + double(start.tv_usec) / 1e6;
@@ -531,15 +531,12 @@ namespace base_local_planner {
     if (path.cost_ < 0) {
       // ROS_DEBUG_NAMED("trajectory_planner_ros",
       //     "The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories.");
-      ROS_ERROR("trajectory_planner_ros, The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories");
+      ROS_ERROR("[computeVelocityCommands] The footprint was in collision for all simulated trajectories");
       local_plan.clear();
       publishPlan(transformed_plan, g_plan_pub_);
       publishPlan(local_plan, l_plan_pub_);
       return false;
     }
-
-    ROS_DEBUG_NAMED("trajectory_planner_ros", "A valid velocity command of (%.2f, %.2f, %.2f) was found for this cycle.",
-        cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
 
     // Fill out the local plan
     for (unsigned int i = 0; i < path.getPointsSize(); ++i) {

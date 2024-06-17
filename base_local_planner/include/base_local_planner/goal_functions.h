@@ -104,7 +104,8 @@ namespace base_local_planner {
       const geometry_msgs::PoseStamped& global_robot_pose,
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
-      std::vector<geometry_msgs::PoseStamped>& transformed_plan);
+      std::vector<geometry_msgs::PoseStamped>& transformed_plan,
+      bool& flag);
 
   double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
                                const geometry_msgs::PoseStamped& p2, 

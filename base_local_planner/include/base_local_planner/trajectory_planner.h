@@ -220,6 +220,8 @@ namespace base_local_planner {
        */
       double footprintCost(double x_i, double y_i, double theta_i);
 
+      void setMinVelocityX(const double& min_vel_x);
+
     private:
       /**
        * @brief  Create the trajectories we wish to explore, score them, and return the best option
