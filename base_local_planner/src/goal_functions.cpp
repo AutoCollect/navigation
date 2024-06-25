@@ -117,48 +117,28 @@ namespace base_local_planner {
                  std::vector<geometry_msgs::PoseStamped>& global_plan) {
 
     ROS_ASSERT(global_plan.size() >= plan.size());
-    std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin();
-    const geometry_msgs::PoseStamped& init_waypoint = *it;
+    auto it = plan.begin();
+    auto global_it = global_plan.begin();
 
-    double x_diff = global_pose.pose.position.x - init_waypoint.pose.position.x;
-    double y_diff = global_pose.pose.position.y - init_waypoint.pose.position.y;
-    double min_distance = hypot(x_diff, y_diff);
+    double min_distance_threshold = std::numeric_limits<double>::max();
 
-    unsigned int erase_index = 0;
-    ++ it;
+    while (it != plan.end()) {
 
-    while(it != plan.end()){
+      const geometry_msgs::PoseStamped& wpt = *it;
+      double distance = hypot((global_pose.pose.position.x - wpt.pose.position.x),
+                              (global_pose.pose.position.y - wpt.pose.position.y));
 
-      const geometry_msgs::PoseStamped& waypoint = *it;
-      double x_diff = global_pose.pose.position.x - waypoint.pose.position.x;
-      double y_diff = global_pose.pose.position.y - waypoint.pose.position.y;
-      double distance = hypot(x_diff, y_diff);
-
-      if (distance < min_distance) {
-        min_distance = distance;
-        ++ erase_index;
-      }
-      else {
+      if(distance < 0.25) {
         break;
       }
 
-      ++ it;
-    }
-
-    if (erase_index > 0) {
-      plan.erase(plan.begin(), plan.begin() + erase_index);
-      global_plan.erase(global_plan.begin(), global_plan.begin() + erase_index);
-    }
-    else {
-  
-      double vel_x   = robot_vel.pose.position.x;
-      double vel_yaw = tf2::getYaw(robot_vel.pose.orientation);
-      const double zero_vx_threshold = 0.01;
-      const double zero_vw_threshold = 0.01;
-
-      if (fabs(vel_x) > zero_vx_threshold || fabs(vel_yaw) > zero_vw_threshold) {
-         plan.erase(plan.begin());
-         global_plan.erase(global_plan.begin());
+      if (distance < min_distance_threshold) {
+        min_distance_threshold = distance;
+        it = plan.erase(it);
+        global_it = global_plan.erase(global_it);
+      }
+      else {
+        break;
       }
     }
   }
@@ -184,7 +164,10 @@ namespace base_local_planner {
       const geometry_msgs::PoseStamped& global_pose,
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
-      std::vector<geometry_msgs::PoseStamped>& transformed_plan){
+      std::vector<geometry_msgs::PoseStamped>& transformed_plan,
+      bool& flag) {
+
+    flag = false;
     transformed_plan.clear();
 
     if (global_plan.empty()) {
@@ -236,7 +219,8 @@ namespace base_local_planner {
               current_delta > 0.15 && 
               previous_delta > 0.1 &&
               previous_curvature > 0.1) {
-              sq_dist_threshold = 1.5;
+              sq_dist_threshold = 5.6025;
+			  flag = true;
           }
 
           previous_curvature = current_curvature;
