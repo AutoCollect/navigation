@@ -48,7 +48,7 @@ using costmap_2d::NO_INFORMATION;
 using costmap_2d::LETHAL_OBSTACLE;
 using costmap_2d::FREE_SPACE;
 
-using costmap_2d::ObservationBuffer;
+using costmap_2d::ObservationTimingBuffer;
 using costmap_2d::Observation;
 
 namespace costmap_2d
@@ -102,6 +102,9 @@ void BumperLayer::onInitialize()
     source_node.param("clearing", clearing, false);
     source_node.param("marking", marking, true);
 
+    // debug print
+    // ROS_ERROR("observation_keep_time: %f", observation_keep_time);
+
     if (!(data_type == "PointCloud2" || data_type == "PointCloud" || data_type == "LaserScan"))
     {
       ROS_FATAL("Only topics that use point clouds or laser scans are currently supported");
@@ -129,10 +132,10 @@ void BumperLayer::onInitialize()
 
     // create an observation buffer
     observation_buffers_.push_back(
-        boost::shared_ptr < ObservationBuffer
-            > (new ObservationBuffer(topic, observation_keep_time, expected_update_rate, min_obstacle_height,
-                                     max_obstacle_height, obstacle_range, raytrace_range, *tf_, global_frame_,
-                                     sensor_frame, transform_tolerance)));
+        boost::shared_ptr < ObservationTimingBuffer
+            > (new ObservationTimingBuffer(topic, observation_keep_time, expected_update_rate, min_obstacle_height,
+                                           max_obstacle_height, obstacle_range, raytrace_range, *tf_, global_frame_,
+                                           sensor_frame, transform_tolerance)));
 
     // check if we'll add this buffer to our marking observation buffers
     if (marking)
@@ -240,7 +243,7 @@ void BumperLayer::reconfigureCB(costmap_2d::BumperPluginConfig &config, uint32_t
 }
 
 void BumperLayer::laserScanCallback(const sensor_msgs::LaserScanConstPtr& message,
-                                    const boost::shared_ptr<ObservationBuffer>& buffer)
+                                    const boost::shared_ptr<ObservationTimingBuffer>& buffer)
 {
   // project the laser into a point cloud
   sensor_msgs::PointCloud2 cloud;
@@ -270,7 +273,7 @@ void BumperLayer::laserScanCallback(const sensor_msgs::LaserScanConstPtr& messag
 }
 
 void BumperLayer::laserScanValidInfCallback(const sensor_msgs::LaserScanConstPtr& raw_message,
-                                            const boost::shared_ptr<ObservationBuffer>& buffer)
+                                            const boost::shared_ptr<ObservationTimingBuffer>& buffer)
 {
   // Filter positive infinities ("Inf"s) to max_range.
   float epsilon = 0.0001;  // a tenth of a millimeter
@@ -312,7 +315,7 @@ void BumperLayer::laserScanValidInfCallback(const sensor_msgs::LaserScanConstPtr
 }
 
 void BumperLayer::pointCloudCallback(const sensor_msgs::PointCloudConstPtr& message,
-                                     const boost::shared_ptr<ObservationBuffer>& buffer)
+                                     const boost::shared_ptr<ObservationTimingBuffer>& buffer)
 {
   sensor_msgs::PointCloud2 cloud2;
 
@@ -329,7 +332,7 @@ void BumperLayer::pointCloudCallback(const sensor_msgs::PointCloudConstPtr& mess
 }
 
 void BumperLayer::pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& message,
-                                      const boost::shared_ptr<ObservationBuffer>& buffer)
+                                      const boost::shared_ptr<ObservationTimingBuffer>& buffer)
 {
   // buffer the point cloud
   buffer->lock();
@@ -446,22 +449,6 @@ void BumperLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
   }
 }
 
-void BumperLayer::addStaticObservation(costmap_2d::Observation& obs, bool marking, bool clearing)
-{
-  if (marking)
-    static_marking_observations_.push_back(obs);
-  if (clearing)
-    static_clearing_observations_.push_back(obs);
-}
-
-void BumperLayer::clearStaticObservations(bool marking, bool clearing)
-{
-  if (marking)
-    static_marking_observations_.clear();
-  if (clearing)
-    static_clearing_observations_.clear();
-}
-
 bool BumperLayer::getMarkingObservations(std::vector<Observation>& marking_observations) const
 {
   bool current = true;
@@ -473,8 +460,6 @@ bool BumperLayer::getMarkingObservations(std::vector<Observation>& marking_obser
     current = marking_buffers_[i]->isCurrent() && current;
     marking_buffers_[i]->unlock();
   }
-  marking_observations.insert(marking_observations.end(),
-                              static_marking_observations_.begin(), static_marking_observations_.end());
   return current;
 }
 
@@ -485,12 +470,10 @@ bool BumperLayer::getClearingObservations(std::vector<Observation>& clearing_obs
   for (unsigned int i = 0; i < clearing_buffers_.size(); ++i)
   {
     clearing_buffers_[i]->lock();
-    clearing_buffers_[i]->getObservations(clearing_observations);
+    clearing_buffers_[i]->getStaleObservations(clearing_observations);
     current = clearing_buffers_[i]->isCurrent() && current;
     clearing_buffers_[i]->unlock();
   }
-  clearing_observations.insert(clearing_observations.end(),
-                              static_clearing_observations_.begin(), static_clearing_observations_.end());
   return current;
 }
 

@@ -89,6 +89,7 @@ add_library(costmap_2d
   src/array_parser.cpp
   src/costmap_2d.cpp
   src/observation_buffer.cpp
+  src/observation_timing_buffer.cpp
   src/layer.cpp
   src/layered_costmap.cpp
   src/costmap_2d_ros.cpp
@@ -110,6 +111,7 @@ add_library(layers
   plugins/static_layer.cpp
   plugins/voxel_layer.cpp
   src/observation_buffer.cpp
+  src/observation_timing_buffer.cpp
 )
 add_dependencies(layers ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(layers

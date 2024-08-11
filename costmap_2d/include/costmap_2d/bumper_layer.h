@@ -41,7 +41,7 @@
 #include <ros/ros.h>
 #include <costmap_2d/costmap_layer.h>
 #include <costmap_2d/layered_costmap.h>
-#include <costmap_2d/observation_buffer.h>
+#include <costmap_2d/observation_timing_buffer.h>
 
 #include <nav_msgs/OccupancyGrid.h>
 
@@ -83,7 +83,7 @@ public:
    * @param buffer A pointer to the observation buffer to update
    */
   void laserScanCallback(const sensor_msgs::LaserScanConstPtr& message,
-                         const boost::shared_ptr<costmap_2d::ObservationBuffer>& buffer);
+                         const boost::shared_ptr<costmap_2d::ObservationTimingBuffer>& buffer);
 
    /**
     * @brief A callback to handle buffering LaserScan messages which need filtering to turn Inf values into range_max.
@@ -91,7 +91,7 @@ public:
     * @param buffer A pointer to the observation buffer to update
     */
   void laserScanValidInfCallback(const sensor_msgs::LaserScanConstPtr& message,
-                                 const boost::shared_ptr<ObservationBuffer>& buffer);
+                                 const boost::shared_ptr<ObservationTimingBuffer>& buffer);
 
   /**
    * @brief  A callback to handle buffering PointCloud messages
@@ -99,7 +99,7 @@ public:
    * @param buffer A pointer to the observation buffer to update
    */
   void pointCloudCallback(const sensor_msgs::PointCloudConstPtr& message,
-                          const boost::shared_ptr<costmap_2d::ObservationBuffer>& buffer);
+                          const boost::shared_ptr<costmap_2d::ObservationTimingBuffer>& buffer);
 
   /**
    * @brief  A callback to handle buffering PointCloud2 messages
@@ -107,11 +107,7 @@ public:
    * @param buffer A pointer to the observation buffer to update
    */
   void pointCloud2Callback(const sensor_msgs::PointCloud2ConstPtr& message,
-                           const boost::shared_ptr<costmap_2d::ObservationBuffer>& buffer);
-
-  // for testing purposes
-  void addStaticObservation(costmap_2d::Observation& obs, bool marking, bool clearing);
-  void clearStaticObservations(bool marking, bool clearing);
+                           const boost::shared_ptr<costmap_2d::ObservationTimingBuffer>& buffer);
 
 protected:
   virtual void setupDynamicReconfigure(ros::NodeHandle& nh);
@@ -156,12 +152,9 @@ protected:
 
   std::vector<boost::shared_ptr<message_filters::SubscriberBase> > observation_subscribers_;  ///< @brief Used for the observation message filters
   std::vector<boost::shared_ptr<tf2_ros::MessageFilterBase> > observation_notifiers_;  ///< @brief Used to make sure that transforms are available for each sensor
-  std::vector<boost::shared_ptr<costmap_2d::ObservationBuffer> > observation_buffers_;  ///< @brief Used to store observations from various sensors
-  std::vector<boost::shared_ptr<costmap_2d::ObservationBuffer> > marking_buffers_;  ///< @brief Used to store observation buffers used for marking obstacles
-  std::vector<boost::shared_ptr<costmap_2d::ObservationBuffer> > clearing_buffers_;  ///< @brief Used to store observation buffers used for clearing obstacles
-
-  // Used only for testing purposes
-  std::vector<costmap_2d::Observation> static_clearing_observations_, static_marking_observations_;
+  std::vector<boost::shared_ptr<costmap_2d::ObservationTimingBuffer> > observation_buffers_;  ///< @brief Used to store observations from various sensors
+  std::vector<boost::shared_ptr<costmap_2d::ObservationTimingBuffer> > marking_buffers_;  ///< @brief Used to store observation buffers used for marking obstacles
+  std::vector<boost::shared_ptr<costmap_2d::ObservationTimingBuffer> > clearing_buffers_;  ///< @brief Used to store observation buffers used for clearing obstacles
 
   bool rolling_window_;
   dynamic_reconfigure::Server<costmap_2d::BumperPluginConfig> *dsrv_;
