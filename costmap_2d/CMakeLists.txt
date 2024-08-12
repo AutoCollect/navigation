@@ -57,6 +57,7 @@ generate_dynamic_reconfigure_options(
   cfg/GenericPlugin.cfg
   cfg/InflationPlugin.cfg
   cfg/VoxelPlugin.cfg
+  cfg/BumperPlugin.cfg
 )
 
 catkin_package(
@@ -88,6 +89,7 @@ add_library(costmap_2d
   src/array_parser.cpp
   src/costmap_2d.cpp
   src/observation_buffer.cpp
+  src/observation_timing_buffer.cpp
   src/layer.cpp
   src/layered_costmap.cpp
   src/costmap_2d_ros.cpp
@@ -105,9 +107,11 @@ target_link_libraries(costmap_2d
 add_library(layers
   plugins/inflation_layer.cpp
   plugins/obstacle_layer.cpp
+  plugins/bumper_layer.cpp
   plugins/static_layer.cpp
   plugins/voxel_layer.cpp
   src/observation_buffer.cpp
+  src/observation_timing_buffer.cpp
 )
 add_dependencies(layers ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(layers
