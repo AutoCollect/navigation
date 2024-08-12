@@ -90,6 +90,7 @@ void BumperLayer::onInitialize()
     double observation_keep_time, expected_update_rate, min_obstacle_height, max_obstacle_height;
     std::string topic, sensor_frame, data_type;
     bool inf_is_valid, clearing, marking;
+    int max_buffer_size;
 
     source_node.param("topic", topic, source);
     source_node.param("sensor_frame", sensor_frame, std::string(""));
@@ -101,6 +102,7 @@ void BumperLayer::onInitialize()
     source_node.param("inf_is_valid", inf_is_valid, false);
     source_node.param("clearing", clearing, false);
     source_node.param("marking", marking, true);
+    source_node.param("max_buffer_size", max_buffer_size, 200);
 
     // debug print
     // ROS_ERROR("observation_keep_time: %f", observation_keep_time);
@@ -135,7 +137,7 @@ void BumperLayer::onInitialize()
         boost::shared_ptr < ObservationTimingBuffer
             > (new ObservationTimingBuffer(topic, observation_keep_time, expected_update_rate, min_obstacle_height,
                                            max_obstacle_height, obstacle_range, raytrace_range, *tf_, global_frame_,
-                                           sensor_frame, transform_tolerance)));
+                                           sensor_frame, transform_tolerance, max_buffer_size)));
 
     // check if we'll add this buffer to our marking observation buffers
     if (marking)

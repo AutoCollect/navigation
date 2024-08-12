@@ -48,11 +48,12 @@ namespace costmap_2d
 ObservationTimingBuffer::ObservationTimingBuffer(string topic_name, double observation_keep_time, double expected_update_rate,
                                                  double min_obstacle_height, double max_obstacle_height, double obstacle_range,
                                                  double raytrace_range, tf2_ros::Buffer& tf2_buffer, string global_frame,
-                                                 string sensor_frame, double tf_tolerance) :
+                                                 string sensor_frame, double tf_tolerance,
+                                                 int max_buffer_size) :
     tf2_buffer_(tf2_buffer), observation_keep_time_(observation_keep_time), expected_update_rate_(expected_update_rate),
     last_updated_(ros::Time::now()), global_frame_(global_frame), sensor_frame_(sensor_frame), topic_name_(topic_name),
     min_obstacle_height_(min_obstacle_height), max_obstacle_height_(max_obstacle_height),
-    obstacle_range_(obstacle_range), raytrace_range_(raytrace_range), tf_tolerance_(tf_tolerance)
+    obstacle_range_(obstacle_range), raytrace_range_(raytrace_range), tf_tolerance_(tf_tolerance), max_buffer_size_(max_buffer_size)
 {
 }
 
@@ -236,8 +237,19 @@ void ObservationTimingBuffer::purgeStaleObservations()
       return;
     }
 
-    // otherwise... we'll have to loop through the observations to see which ones are stale
     list<Observation>::iterator obs_it = valid_timing_observation_list_.begin();
+    
+    // remove over sized buffer element
+    int current_buffer_size_diff = valid_timing_observation_list_.size() - max_buffer_size_;
+    if (current_buffer_size_diff > 0) {
+      // Get the iterator to the nth element in the source list
+      std::advance(obs_it, current_buffer_size_diff); // Move the iterator n positions forward
+
+      // Move the first n elements from sourceList to destinationList
+      stale_timing_observation_list_.splice(stale_timing_observation_list_.end(), valid_timing_observation_list_, valid_timing_observation_list_.begin(), obs_it);
+    }
+
+    // otherwise... we'll have to loop through the observations to see which ones are stale
     for (obs_it = valid_timing_observation_list_.begin(); obs_it != valid_timing_observation_list_.end(); ++obs_it)
     {
       Observation& obs = *obs_it;

@@ -71,11 +71,13 @@ public:
    * @param  global_frame The frame to transform PointClouds into
    * @param  sensor_frame The frame of the origin of the sensor, can be left blank to be read from the messages
    * @param  tf_tolerance The amount of time to wait for a transform to be available when setting a new global frame
+   * @param  buffer_size The valid timing observations buffer size
    */
   ObservationTimingBuffer(std::string topic_name, double observation_keep_time, double expected_update_rate,
                           double min_obstacle_height, double max_obstacle_height, double obstacle_range,
                           double raytrace_range, tf2_ros::Buffer& tf2_buffer, std::string global_frame,
-                          std::string sensor_frame, double tf_tolerance);
+                          std::string sensor_frame, double tf_tolerance,
+                          int max_buffer_size);
 
   /**
    * @brief  Destructor... cleans up
@@ -158,6 +160,8 @@ private:
   boost::recursive_mutex lock_;  ///< @brief A lock for accessing data in callbacks safely
   double obstacle_range_, raytrace_range_;
   double tf_tolerance_;
+  // valid timing observations buffer size
+  int max_buffer_size_;
 };
 }  // namespace costmap_2d
 #endif  // COSTMAP_2D_OBSERVATION_TIMING_BUFFER_H_
