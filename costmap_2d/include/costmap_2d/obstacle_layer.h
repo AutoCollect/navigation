@@ -167,6 +167,9 @@ protected:
   dynamic_reconfigure::Server<costmap_2d::ObstaclePluginConfig> *dsrv_;
 
   int combination_method_;
+  
+  // suspect obstacle layer flag
+  bool suspect_obstacle_layer_;
 
 private:
   void reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level);

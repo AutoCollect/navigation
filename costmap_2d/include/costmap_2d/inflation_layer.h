@@ -67,9 +67,26 @@ public:
       index_(i), x_(x), y_(y), src_x_(sx), src_y_(sy)
   {
   }
+
+  /**
+   * @brief  Constructor for a CellData objects
+   * @param  i The index of the cell in the cost map
+   * @param  x The x coordinate of the cell in the cost map
+   * @param  y The y coordinate of the cell in the cost map
+   * @param  sx The x coordinate of the closest obstacle cell in the costmap
+   * @param  sy The y coordinate of the closest obstacle cell in the costmap
+   * @param  value The cell value in the costmap, by default NO_INFORMATION
+   * @return
+   */
+  CellData(double i, unsigned int x, unsigned int y, unsigned int sx, unsigned int sy, unsigned char value) :
+      index_(i), x_(x), y_(y), src_x_(sx), src_y_(sy), value_(value)
+  {
+  }
+
   unsigned int index_;
   unsigned int x_, y_;
   unsigned int src_x_, src_y_;
+  unsigned char value_ = costmap_2d::NO_INFORMATION;
 };
 
 class InflationLayer : public Layer
@@ -175,8 +192,29 @@ private:
     return layered_costmap_->getCostmap()->cellDistance(world_dist);
   }
 
+  /**
+   * @brief  Given an index of a cell in the costmap, place it into a list pending for obstacle inflation
+   * @param  index The index of the cell
+   * @param  mx The x coordinate of the cell (can be computed from the index, but saves time to store it)
+   * @param  my The y coordinate of the cell (can be computed from the index, but saves time to store it)
+   * @param  src_x The x index of the obstacle point inflation started at
+   * @param  src_y The y index of the obstacle point inflation started at
+   */
   inline void enqueue(unsigned int index, unsigned int mx, unsigned int my,
                       unsigned int src_x, unsigned int src_y);
+
+  /**
+   * @brief  Given an index of a cell in the costmap, place it into a list pending for obstacle inflation
+   * @param  index The index of the cell
+   * @param  mx The x coordinate of the cell (can be computed from the index, but saves time to store it)
+   * @param  my The y coordinate of the cell (can be computed from the index, but saves time to store it)
+   * @param  src_x The x index of the obstacle point inflation started at
+   * @param  src_y The y index of the obstacle point inflation started at
+   * @param  value the cost value of cell
+   */
+  inline void enqueue(unsigned int index, unsigned int mx, unsigned int my,
+                      unsigned int src_x, unsigned int src_y,
+                      unsigned char value);
 
   unsigned int cell_inflation_radius_;
   unsigned int cached_cell_inflation_radius_;
