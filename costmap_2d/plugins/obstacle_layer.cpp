@@ -46,6 +46,7 @@ PLUGINLIB_EXPORT_CLASS(costmap_2d::ObstacleLayer, costmap_2d::Layer)
 
 using costmap_2d::NO_INFORMATION;
 using costmap_2d::LETHAL_OBSTACLE;
+using costmap_2d::SUSPECT_OBSTACLE;
 using costmap_2d::FREE_SPACE;
 
 using costmap_2d::ObservationBuffer;
@@ -101,6 +102,7 @@ void ObstacleLayer::onInitialize()
     source_node.param("inf_is_valid", inf_is_valid, false);
     source_node.param("clearing", clearing, false);
     source_node.param("marking", marking, true);
+    source_node.param("suspect_obstacle_layer", suspect_obstacle_layer_, false);
 
     if (!(data_type == "PointCloud2" || data_type == "PointCloud" || data_type == "LaserScan"))
     {
@@ -406,7 +408,12 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
       }
 
       unsigned int index = getIndex(mx, my);
-      costmap_[index] = LETHAL_OBSTACLE;
+
+      // check suspect obstacle layer
+      if (!suspect_obstacle_layer_)
+        costmap_[index] = LETHAL_OBSTACLE;
+      else
+        costmap_[index] = SUSPECT_OBSTACLE;
       touch(px, py, min_x, min_y, max_x, max_y);
     }
   }

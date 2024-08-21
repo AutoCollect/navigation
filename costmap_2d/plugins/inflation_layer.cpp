@@ -46,6 +46,7 @@ PLUGINLIB_EXPORT_CLASS(costmap_2d::InflationLayer, costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
 using costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
+using costmap_2d::SUSPECT_OBSTACLE;
 using costmap_2d::NO_INFORMATION;
 
 namespace costmap_2d
@@ -224,9 +225,9 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
     {
       int index = master_grid.getIndex(i, j);
       unsigned char cost = master_array[index];
-      if (cost == LETHAL_OBSTACLE)
+      if (cost == LETHAL_OBSTACLE || cost == SUSPECT_OBSTACLE)
       {
-        obs_bin.push_back(CellData(index, i, j, i, j));
+        obs_bin.push_back(CellData(index, i, j, i, j, cost));
       }
     }
   }
@@ -257,7 +258,13 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
       unsigned int sy = cell.src_y_;
 
       // assign the cost associated with the distance from an obstacle to the cell
-      unsigned char cost = costLookup(mx, my, sx, sy);
+      // unsigned char cost = costLookup(mx, my, sx, sy);
+      unsigned char cost;
+      if (cell.value_ == SUSPECT_OBSTACLE)
+        cost = SUSPECT_OBSTACLE;
+      else
+        cost = costLookup(mx, my, sx, sy);
+
       unsigned char old_cost = master_array[index];
       if (old_cost == NO_INFORMATION && (inflate_unknown_ ? (cost > FREE_SPACE) : (cost >= INSCRIBED_INFLATED_OBSTACLE)))
         master_array[index] = cost;
@@ -266,13 +273,13 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
 
       // attempt to put the neighbors of the current cell onto the inflation list
       if (mx > 0)
-        enqueue(index - 1, mx - 1, my, sx, sy);
+        enqueue(index - 1, mx - 1, my, sx, sy,      cell.value_);
       if (my > 0)
-        enqueue(index - size_x, mx, my - 1, sx, sy);
+        enqueue(index - size_x, mx, my - 1, sx, sy, cell.value_);
       if (mx < size_x - 1)
-        enqueue(index + 1, mx + 1, my, sx, sy);
+        enqueue(index + 1, mx + 1, my, sx, sy,      cell.value_);
       if (my < size_y - 1)
-        enqueue(index + size_x, mx, my + 1, sx, sy);
+        enqueue(index + size_x, mx, my + 1, sx, sy, cell.value_);
     }
   }
 
@@ -281,7 +288,6 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
 
 /**
  * @brief  Given an index of a cell in the costmap, place it into a list pending for obstacle inflation
- * @param  grid The costmap
  * @param  index The index of the cell
  * @param  mx The x coordinate of the cell (can be computed from the index, but saves time to store it)
  * @param  my The y coordinate of the cell (can be computed from the index, but saves time to store it)
@@ -304,6 +310,37 @@ inline void InflationLayer::enqueue(unsigned int index, unsigned int mx, unsigne
     inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y));
   }
 }
+
+/**
+ * @brief  Given an index of a cell in the costmap, place it into a list pending for obstacle inflation
+ * @param  index The index of the cell
+ * @param  mx The x coordinate of the cell (can be computed from the index, but saves time to store it)
+ * @param  my The y coordinate of the cell (can be computed from the index, but saves time to store it)
+ * @param  src_x The x index of the obstacle point inflation started at
+ * @param  src_y The y index of the obstacle point inflation started at
+ * @param  value the cost value of cell
+ */
+inline void InflationLayer::enqueue(unsigned int index, unsigned int mx, unsigned int my,
+                                    unsigned int src_x, unsigned int src_y,
+                                    unsigned char value)
+{
+  if (!seen_[index])
+  {
+    // we compute our distance table one cell further than the inflation radius dictates so we can make the check below
+    double distance = distanceLookup(mx, my, src_x, src_y);
+
+    // we only want to put the cell in the list if it is within the inflation radius of the obstacle point
+    if (distance > cell_inflation_radius_)
+      return;
+
+    // push the cell data onto the inflation list and mark
+    if (value != SUSPECT_OBSTACLE)
+      inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y));
+    else
+      inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y, SUSPECT_OBSTACLE));
+  }
+}
+
 
 void InflationLayer::computeCaches()
 {
