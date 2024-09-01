@@ -80,17 +80,12 @@ private:
 
   bool initialized_;
 
-  // double sim_granularity_; 
-  // double min_rotational_vel_;
-  // double max_rotational_vel_;
-  // double acc_lim_th_;
-  // double tolerance_;
-
-  double frequency_;
-
   costmap_2d::Costmap2DROS* local_costmap_;
   base_local_planner::CostmapModel* world_model_;
 
+  // publish frequency for cmd_vel topic
+  double frequency_;
+  // stop duration
   double stop_duration_;
 
 };
