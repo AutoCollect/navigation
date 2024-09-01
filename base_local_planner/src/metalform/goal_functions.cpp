@@ -34,7 +34,7 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#include <base_local_planner/goal_functions.h>
+#include <base_local_planner/metalform/goal_functions.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -75,7 +75,7 @@ namespace base_local_planner {
     pub.publish(gui_path);
   }
 
-  void prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan){
+  void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan){
     ROS_ASSERT(global_plan.size() >= plan.size());
     std::vector<geometry_msgs::PoseStamped>::iterator it = plan.begin();
     const geometry_msgs::PoseStamped& init_waypoint = *it;
@@ -111,10 +111,10 @@ namespace base_local_planner {
     }
   }
 
-  void prunePlan(const geometry_msgs::PoseStamped& global_pose,
-                 const geometry_msgs::PoseStamped& robot_vel,
-                 std::vector<geometry_msgs::PoseStamped>& plan,
-                 std::vector<geometry_msgs::PoseStamped>& global_plan) {
+  void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose,
+                    const geometry_msgs::PoseStamped& robot_vel,
+                    std::vector<geometry_msgs::PoseStamped>& plan,
+                    std::vector<geometry_msgs::PoseStamped>& global_plan) {
 
     ROS_ASSERT(global_plan.size() >= plan.size());
     auto it = plan.begin();
@@ -158,7 +158,7 @@ namespace base_local_planner {
     return fKappa;
   }
 
-  bool transformGlobalPlan(
+  bool mf_transformGlobalPlan(
       const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const geometry_msgs::PoseStamped& global_pose,
@@ -233,6 +233,16 @@ namespace base_local_planner {
         double y_diff = robot_pose.pose.position.y - global_plan[i].pose.position.y;
         sq_dist = x_diff * x_diff + y_diff * y_diff;
 
+        //=========================================
+        // verify the SUSPECT_OBSTACLE value
+        unsigned int temp_mx, temp_my;
+        if ((costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) &&
+            (costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) && 
+            (sq_dist >= 2.25)) { // sq_dist >= 2.25 make sure 0.3 m/s low speed forward
+          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
+          break;
+        }
+        //=========================================
         ++i;
       }
       unsigned int temp_mx, temp_my;
@@ -241,6 +251,7 @@ namespace base_local_planner {
         unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
 
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
+          ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
             if (i >= global_plan_size) {

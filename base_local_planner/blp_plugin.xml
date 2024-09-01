@@ -5,3 +5,11 @@
     </description>
   </class>
 </library>
+
+<library path="lib/libmetalform_trajectory_planner_ros">
+    <class name="base_local_planner/MFTrajectoryPlannerROS" type="base_local_planner::MFTrajectoryPlannerROS" base_class_type="nav_core::BaseLocalPlanner">
+    <description>
+      A implementation of a metalform local planner using DWA based on configuration parameters for new obstacle avoidance with front bumper trigger 
+    </description>
+  </class>
+</library>
