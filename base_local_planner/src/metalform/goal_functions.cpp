@@ -239,7 +239,7 @@ namespace base_local_planner {
         if ((costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) &&
             (costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) && 
             (sq_dist >= 2.25)) { // sq_dist >= 2.25 make sure 0.3 m/s low speed forward
-          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
+          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
           break;
         }
         //=========================================
@@ -251,7 +251,7 @@ namespace base_local_planner {
         unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
 
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
+          // ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
             if (i >= global_plan_size) {
