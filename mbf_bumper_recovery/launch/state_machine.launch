@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- autocollect move base flex (autocollect_mbf)                            -->
+<!-- File: base_fixed_pattern_demo_with_fake_bumper_carpark_sim_world.launch -->
+<!-- Description: Launch carpark sim world with bumper + lower/upper laser   -->
+<!-- Author: Patrick     (patrick.dong@metalform.co.nz)                      -->
+<!--         Yohan Borda (yohan.borda@metalform.co.nz)                       -->
+<!-- METALFORM 2024                                                          -->
+
+<launch>
+
+  <!-- launch state machine for bumper trigger -->
+  <node name="state_machine" pkg="mbf_bumper_recovery" type="state_machine.py" output="screen" />
+
+</launch>

@@ -1,0 +1,10 @@
+recovery_behaviour_enabled: true
+
+recovery_behaviors:
+  - {name: mbf_bumper_recovery, type: mbf_bumper_recovery/BumperRecovery}
+
+moveback_recovery:
+    controller_frequency: 20.0
+    linear_vel_back     : -0.3
+    step_back_length    : 1.0
+    step_back_timeout   : 15.0
