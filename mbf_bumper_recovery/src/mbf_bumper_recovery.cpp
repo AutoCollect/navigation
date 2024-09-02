@@ -29,11 +29,6 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *
- *  abstract_planner.h
- *
- *  author: Sebastian Pütz <spuetz@uni-osnabrueck.de>
- *
  */
 
 #include <mbf_bumper_recovery/mbf_bumper_recovery.h>
@@ -310,4 +305,4 @@ bool BumperRecovery::cancel() {
   return true;
 }
 
-} // namespace moveback_recovery
+} // namespace mbf_bumper_recovery

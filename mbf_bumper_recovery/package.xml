@@ -1,15 +1,25 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+mbf_bumper_recovery
+File: package.xml
+Description: package.xml
+Author: Patrick     (patrick.dong@metalform.co.nz)
+        Yohan Borda (yohan.borda@metalform.co.nz)
+METALFORM 2024
+-->
+
 <package format="2">
     <name>mbf_bumper_recovery</name>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <description>
         The Move Base Flex (MBF) recovery behavior moves the robot back for specified length.
         It also checks the costmap for a possible collision behind the robot while moving and
-        stops the robot if necessary.
+        stops the robot if necessary with front bumper trigger behavior
     </description>
-    <maintainer email="spuetz@uos.de">Sebastian Pütz</maintainer>
-    <author email="spuetz@uos.de">Sebastian Pütz</author>
-    <author email="fistutzenste@uos.de">Finn Stutzenstein</author>
+    <maintainer email="patrick.dong@metalform.co.nz">Patrick Dong</maintainer>
+    <author email="patrick.dong@metalform.co.nz">Patrick Dong</author>
+    <author email="yohan.borda@metalform.co.nz">Yohan Borda</author>
 
     <license>BSD-3</license>
 
@@ -32,6 +42,7 @@
     <exec_depend>roscpp</exec_depend>
     <exec_depend>tf2_geometry_msgs</exec_depend>
     <exec_depend>tf2_ros</exec_depend>
+
     <export>
         <mbf_costmap_core plugin="${prefix}/recovery_plugin.xml" />
     </export>

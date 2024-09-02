@@ -29,15 +29,10 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *
- *  abstract_planner.h
- *
- *  author: Sebastian Pütz <spuetz@uni-osnabrueck.de>
- *
  */
 
-#ifndef MOVEBACK_RECOVERY_H_
-#define MOVEBACK_RECOVERY_H_
+#ifndef MBF_BUMPER_RECOVERY_H_
+#define MBF_BUMPER_RECOVERY_H_
 
 #include <mbf_costmap_core/costmap_recovery.h>
 #include <costmap_2d/costmap_2d_ros.h>
@@ -117,6 +112,6 @@ private:
   bool bumper_triggered_;
 };
 
-} // namespace moveback_recovery
+} // namespace mbf_bumper_recovery
 
-#endif // MOVEBACK_RECOVERY_H_
+#endif // MBF_BUMPER_RECOVERY_H_
