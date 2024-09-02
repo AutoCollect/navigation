@@ -31,6 +31,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file mbf_bumper_recovery.cpp
+ * @author Patrick (patrick.dong@metalform.co.nz)
+ *         Yohan Borda (yohan.borda@metalform.co.nz)
+ * @brief front bumper trigger recovery behavior logic
+ * @version 0.2
+ * @date 2024-09-03
+ * @copyright METALFORM (c) 2024
+ */
+
 #ifndef MBF_BUMPER_RECOVERY_H_
 #define MBF_BUMPER_RECOVERY_H_
 
@@ -82,7 +92,7 @@ private:
 
   void bumperCallback(const std_msgs::Bool::ConstPtr& msg);
 
-  uint32_t publishStop() const;
+  void publishStop() const;
 
   ros::NodeHandle nh_;
   ros::Subscriber bumper_sub_;

@@ -31,6 +31,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+ /**
+ * @file mbf_bumper_recovery.cpp
+ * @author Patrick (patrick.dong@metalform.co.nz)
+ *         Yohan Borda (yohan.borda@metalform.co.nz)
+ * @brief front bumper trigger recovery behavior logic
+ * @version 0.2
+ * @date 2024-09-03
+ * @copyright METALFORM (c) 2024
+ */
+
 #include <mbf_bumper_recovery/mbf_bumper_recovery.h>
 
 #include <pluginlib/class_list_macros.h>
@@ -125,15 +135,14 @@ uint32_t BumperRecovery::runBehavior(std::string &message)
     {
       publishStop();
       message = "Time out, moving backwards";
-      ROS_INFO_STREAM(message);
-      ROS_INFO("%.2f [sec] elapsed.", timeout.toSec());
+      ROS_ERROR("[Bumper Recovery] Time out, moving backwards, %.2f [sec] elapsed.", timeout.toSec());
       return mbf_msgs::RecoveryResult::PAT_EXCEEDED;
     }
 
     // check for cancel request
     if(canceled_) {
       message = "Cancel has been requested, stopping robot.";
-      ROS_INFO_STREAM(message);
+      ROS_ERROR("[Bumper Recovery] Cancel has been requested, stopping robot.");
       // stop the robot
       publishStop();
       return mbf_msgs::RecoveryResult::CANCELED;
@@ -175,7 +184,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message)
     if(cm_state == CostmapState::LETHAL)
     {
       message = "Stop moving backwards, since an obstacle behind the robot was detected";
-      ROS_INFO_STREAM(message);
+      ROS_ERROR("[Bumper Recovery] Stop moving backwards, since an obstacle behind the robot was detected");
       // stop the robot
       publishStop();
       return mbf_msgs::RecoveryResult::FAILURE;
@@ -192,7 +201,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message)
     if(step_back_length_ < dist)
     {
       message = "Successfully moved backwards.";
-      ROS_INFO_STREAM(message);
+      ROS_ERROR("[Bumper Recovery] Successfully moved backwards.");
       // stop the robot
       publishStop();
       return mbf_msgs::RecoveryResult::SUCCESS;
@@ -292,7 +301,7 @@ BumperRecovery::CostmapState BumperRecovery::checkPoseCost(
   return state;
 }
 
-uint32_t BumperRecovery::publishStop() const
+void BumperRecovery::publishStop() const
 {
   geometry_msgs::Twist zero_vel;
   zero_vel.linear.x = zero_vel.linear.y = zero_vel.linear.z = 0;
