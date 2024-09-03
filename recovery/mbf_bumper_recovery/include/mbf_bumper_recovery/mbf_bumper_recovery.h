@@ -62,31 +62,12 @@ public:
 
   virtual ~BumperRecovery();
 
-  virtual void initialize (std::string name, tf2_ros::Buffer* tf,
-                           costmap_2d::Costmap2DROS* global_costmap,
+  virtual void initialize (std::string name, tf2_ros::Buffer*, costmap_2d::Costmap2DROS*,
                            costmap_2d::Costmap2DROS* local_costmap);
 
   virtual uint32_t runBehavior(std::string& message);
 
   virtual bool cancel();
-
-  enum class CostmapState{
-    FREE      =  0, // robot is completely in traversable space
-    INSCRIBED =  1, // robot is partially in inscribed space
-    LETHAL    =  2, // robot is partially in collision
-    UNKNOWN   =  3, // robot is partially in unknown space
-    OUTSIDE   =  4  // robot is completely outside the map
-  };
-
-  BumperRecovery::CostmapState checkPoseCost(
-      costmap_2d::Costmap2DROS* costmap_ptr,
-      const geometry_msgs::PoseStamped& pose,
-      const float safety_dist,
-      const float lethal_cost_mult,
-      const float inscrib_cost_mult,
-      const float unknown_cost_mult,
-      int &total_cost) const;
-
 
 private:
 
@@ -95,31 +76,26 @@ private:
   void publishStop() const;
 
   ros::NodeHandle nh_;
+
   ros::Subscriber bumper_sub_;
+  ros::Publisher cmd_vel_pub_;
+
+  // The cycle frequency executing the break checks, (default: 20 Hz)
+  float control_frequency_;
+  // The velocity for driving the robot backwards, (default: -0.3 m/sec)
+  float linear_vel_back_;
+  
+  // The distance to move the robot backwards, (default: 1 m)
+  float step_back_length_;
+  // The timeout before stopping the robot, (default: 15 sec)
+  float step_back_timeout_;
 
   costmap_2d::Costmap2DROS* local_costmap_;
-  costmap_2d::Costmap2DROS* global_costmap_;
-  tf2_ros::Buffer* tf_;
-  ros::Publisher cmd_vel_pub_;
-  ros::Publisher back_pos_pub_;
-  bool initialized_;
-  bool canceled_;
-
-  float step_back_length_;
-  float control_frequency_;
-  float step_back_timeout_;
-  float linear_vel_back_;
-
-  float footprint_inflation_;
-  float look_behind_dist_;
-
-  bool publish_back_point_;
-
-  float lethal_cost_mul_;
-  float inscribe_cost_mul_;
-  float unknown_cost_mul_;
 
   bool bumper_triggered_;
+
+  bool initialized_;
+  bool canceled_;
 };
 
 } // namespace mbf_bumper_recovery
