@@ -96,6 +96,9 @@ private:
 
   bool initialized_;
   bool canceled_;
+
+  // Initialize the flag to false
+  int debug_print_ = 0;
 };
 
 } // namespace mbf_bumper_recovery

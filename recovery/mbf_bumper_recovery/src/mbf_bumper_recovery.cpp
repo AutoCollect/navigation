@@ -98,14 +98,26 @@ void BumperRecovery::initialize(std::string name, tf2_ros::Buffer*, costmap_2d::
 
 void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
   bumper_triggered_ = msg->data;
+
+  // callback debug print message (only once when triggered)
   if (bumper_triggered_) {
-    ROS_ERROR("[Bumper Recovery] callback bumper_triggered: %d", bumper_triggered_);
+    if (debug_print_ == 0) {
+      ROS_ERROR("[Bumper Recovery] callback front bumper triggered");
+      debug_print_ = 1;
+    }
+  }
+  else {
+    if (debug_print_ > 0) {
+      debug_print_ = 0;
+    }
   }
 }
 
 uint32_t BumperRecovery::runBehavior(std::string &message) {
+  
+  // make sure behavior only for bumper triggered
   if (!bumper_triggered_) {
-    ROS_ERROR("[Bumper Recovery] runBehavior bumper_triggered: %d", bumper_triggered_);
+    ROS_ERROR("[Bumper Recovery] runBehavior RecoveryResult::FAILURE bumper_triggered: %d", bumper_triggered_);
     return mbf_msgs::RecoveryResult::FAILURE;
   }
 
