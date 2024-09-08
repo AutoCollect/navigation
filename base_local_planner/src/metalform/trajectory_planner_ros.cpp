@@ -416,17 +416,23 @@ namespace base_local_planner {
     }
 
     std::vector<geometry_msgs::PoseStamped> transformed_plan;
-    bool flag = false;
+    bool turn_flag = false;
     //get the global plan in our frame
-    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, transformed_plan, flag)) {
+    //add footprint_cost to make sure low speed 0.3m/s in low bush
+    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, transformed_plan, turn_flag)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
 
     tc_->setMinVelocityX(0.0);
 
-    if (flag) {
+    if (turn_flag) { // reduce U turn speed to 0.5 m/s
       tc_->setMinVelocityX(min_vel_x_);
+
+      // low bush suspect obstacle speed
+      if (footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
+        tc_->setMinVelocityX(0.3);
+      }
     }
 	
     geometry_msgs::PoseStamped robot_vel;
