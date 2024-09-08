@@ -158,12 +158,36 @@ namespace base_local_planner {
     return fKappa;
   }
 
+
+  double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
+                                 const std::vector<geometry_msgs::PoseStamped>& trajectory) {
+
+    // TODO FLANN search
+    int num_points = trajectory.size();
+    double min_dist = std::numeric_limits<double>::max();
+    int index = 0;
+
+    for (int i = 0; i < num_points; ++i) {
+
+      double dist = hypot((trajectory[i].pose.position.x - robot_pose.pose.position.x), 
+                          (trajectory[i].pose.position.y - robot_pose.pose.position.y));
+
+      if (dist < min_dist) {
+        min_dist = dist;
+        index = i;
+      }
+    }
+
+    return min_dist;
+  }
+
   bool mf_transformGlobalPlan(
       const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const geometry_msgs::PoseStamped& global_pose,
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
+      const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& flag) {
 
@@ -229,22 +253,41 @@ namespace base_local_planner {
 
         transformed_plan.push_back(newer_pose);
 
+        //========================================
+        // project robot pose onto global plan, to see what the close distace between robot pose & global plan
+        double min_dist = projectPoseToTrajectory(robot_pose, global_plan);
+        //========================================
+        // simple line distace between current robot pose and add plan point 
         double x_diff = robot_pose.pose.position.x - global_plan[i].pose.position.x;
         double y_diff = robot_pose.pose.position.y - global_plan[i].pose.position.y;
         sq_dist = x_diff * x_diff + y_diff * y_diff;
-
+        //========================================
+        // check the footprint cost on the trajectory for legality
+        //  ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
+        //========================================
+        // check transformed_plan points cost on trajectory for legality
+        bool has_suspect = false;
+        for (int index = 0; index < transformed_plan.size(); index++) {
+          unsigned int temp_mx, temp_my;
+          if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
+              costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+                has_suspect = true;
+                break;
+              }
+        }
         //=========================================
         // verify the SUSPECT_OBSTACLE value
-        unsigned int temp_mx, temp_my;
-        if ((costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) &&
-            (costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) && 
-            (sq_dist >= 2.25)) { // sq_dist >= 2.25 make sure 0.3 m/s low speed forward
+        //=========================================
+        if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
+            (min_dist < 0.5) &&
+            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
           break;
         }
         //=========================================
         ++i;
       }
+      
       unsigned int temp_mx, temp_my;
       if (!transformed_plan.empty() && 
         costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) {

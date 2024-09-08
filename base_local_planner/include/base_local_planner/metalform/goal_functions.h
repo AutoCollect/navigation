@@ -111,6 +111,7 @@ namespace base_local_planner {
       const geometry_msgs::PoseStamped& global_robot_pose,
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
+      const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& flag);
 
@@ -169,5 +170,15 @@ namespace base_local_planner {
   bool stopped(const nav_msgs::Odometry& base_odom, 
       const double& rot_stopped_velocity,
       const double& trans_stopped_velocity);
+
+  /**
+    * @brief  find a minimum distance between plan and robot pose
+    * @param robot_pose current given robot pose 
+    * @param trajectory current global plan
+    * @return a minimum distance 
+    */
+  double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
+                                 const std::vector<geometry_msgs::PoseStamped>& trajectory);
+
 };
 #endif
