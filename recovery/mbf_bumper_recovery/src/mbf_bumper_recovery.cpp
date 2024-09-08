@@ -102,7 +102,7 @@ void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
   // callback debug print message (only once when triggered)
   if (bumper_triggered_) {
     if (debug_print_ == 0) {
-      ROS_ERROR("[Bumper Recovery] callback front bumper triggered");
+      ROS_INFO("[Bumper Recovery] callback front bumper triggered");
       debug_print_ = 1;
     }
   }
@@ -117,11 +117,11 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
   
   // make sure behavior only for bumper triggered
   if (!bumper_triggered_) {
-    ROS_ERROR("[Bumper Recovery] runBehavior RecoveryResult::FAILURE bumper_triggered: %d", bumper_triggered_);
+    ROS_WARN("[Bumper Recovery] runBehavior RecoveryResult::FAILURE bumper_triggered: %d", bumper_triggered_);
     return mbf_msgs::RecoveryResult::FAILURE;
   }
 
-  ROS_ERROR("[Bumper Recovery] runBehavior trigger");
+  ROS_INFO("[Bumper Recovery] runBehavior trigger");
 
   canceled_ = false;
 
@@ -161,7 +161,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
       // stop the robot
       publishStop();
       message = "Time out, moving backwards";
-      ROS_ERROR("[Bumper Recovery] Time out, moving backwards, %.2f [sec] elapsed.", timeout.toSec());
+      ROS_WARN("[Bumper Recovery] Time out, moving backwards, %.2f [sec] elapsed.", timeout.toSec());
       return mbf_msgs::RecoveryResult::PAT_EXCEEDED;
     }
 
@@ -170,7 +170,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
       // stop the robot
       publishStop();
       message = "Cancel has been requested, stopping robot.";
-      ROS_ERROR("[Bumper Recovery] Cancel has been requested, stopping robot.");
+      ROS_WARN("[Bumper Recovery] Cancel has been requested, stopping robot.");
       return mbf_msgs::RecoveryResult::CANCELED;
     }
 
@@ -186,7 +186,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
       // stop the robot
       publishStop();
       message = "Successfully moved backwards.";
-      ROS_ERROR("[Bumper Recovery] Successfully moved backwards.");
+      ROS_INFO("[Bumper Recovery] Successfully moved backwards.");
       return mbf_msgs::RecoveryResult::SUCCESS;
     }
 
