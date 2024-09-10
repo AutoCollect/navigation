@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- mbf_bumper_recovery                                -->
+<!-- File: state_machine.launch                         -->
+<!-- Description: launch state machine python file      -->
+<!-- Author: Patrick     (patrick.dong@metalform.co.nz) -->
+<!--         Yohan Borda (yohan.borda@metalform.co.nz)  -->
+<!-- METALFORM 2024                                     -->
+
+<launch>
+  <!-- launch state machine for bumper trigger -->
+  <node name="state_machine" pkg="mbf_bumper_recovery" type="state_machine.py" output="screen" />
+</launch>
