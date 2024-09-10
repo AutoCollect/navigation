@@ -105,6 +105,8 @@ namespace base_local_planner {
    * @param costmap A reference to the costmap being used so the window size for transforming can be computed
    * @param global_frame The frame to transform the plan to
    * @param transformed_plan Populated with the transformed plan
+   * @param turn_flag local goal control the turning speed
+   * @param has_suspect low bush detection flag
    */
   bool mf_transformGlobalPlan(const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
@@ -113,7 +115,8 @@ namespace base_local_planner {
       const std::string& global_frame,
       const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
-      bool& flag);
+      bool& turn_flag,
+      bool& has_suspect);
 
   /**
    * @brief  Calculte curvature ratio via 3 2D points from trajectory

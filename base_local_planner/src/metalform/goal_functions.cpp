@@ -189,9 +189,13 @@ namespace base_local_planner {
       const std::string& global_frame,
       const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
-      bool& flag) {
+      bool& turn_flag,
+      bool& has_suspect) {
 
-    flag = false;
+    // ROS_INFO("transformed_plan size: %d", int(transformed_plan.size()));
+
+    turn_flag   = false;
+    has_suspect = false;
     transformed_plan.clear();
 
     if (global_plan.empty()) {
@@ -244,7 +248,7 @@ namespace base_local_planner {
               previous_delta > 0.1 &&
               previous_curvature > 0.1) {
             sq_dist_threshold = 5.6025;
-            flag = true;
+            turn_flag = true;
           }
 
           previous_curvature = current_curvature;
@@ -266,7 +270,6 @@ namespace base_local_planner {
         //  ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
-        bool has_suspect = false;
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
