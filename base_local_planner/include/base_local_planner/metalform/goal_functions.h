@@ -85,7 +85,7 @@ namespace base_local_planner {
    * @param plan The plan to be pruned
    * @param global_plan The plan to be pruned in the frame of the planner
    */
-  void prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan);
+  void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose, std::vector<geometry_msgs::PoseStamped>& plan, std::vector<geometry_msgs::PoseStamped>& global_plan);
 
   /**
    * @brief  Trim off parts of the global plan that are far enough behind the robot
@@ -94,10 +94,10 @@ namespace base_local_planner {
    * @param plan The plan to be pruned
    * @param global_plan The plan to be pruned in the frame of the planner
    */
-  void prunePlan(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
+  void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
 
   /**
-   * @brief  Transforms the global plan of the robot from the planner frame to the frame of the costmap,
+   * @brief  Metalform Transforms the global plan of the robot from the planner frame to the frame of the costmap,
    * selects only the (first) part of the plan that is within the costmap area.
    * @param tf A reference to a transform listener
    * @param global_plan The plan to be transformed
@@ -106,14 +106,21 @@ namespace base_local_planner {
    * @param global_frame The frame to transform the plan to
    * @param transformed_plan Populated with the transformed plan
    */
-  bool transformGlobalPlan(const tf2_ros::Buffer& tf,
+  bool mf_transformGlobalPlan(const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
       const geometry_msgs::PoseStamped& global_robot_pose,
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
+      const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& flag);
 
+  /**
+   * @brief  Calculte curvature ratio via 3 2D points from trajectory
+   * @param p1 point 1 coordinate
+   * @param p2 point 2 coordinate
+   * @param p3 point 3 coordinate
+   */
   double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
                                const geometry_msgs::PoseStamped& p2, 
                                const geometry_msgs::PoseStamped& p3);
@@ -163,5 +170,15 @@ namespace base_local_planner {
   bool stopped(const nav_msgs::Odometry& base_odom, 
       const double& rot_stopped_velocity,
       const double& trans_stopped_velocity);
+
+  /**
+    * @brief  find a minimum distance between plan and robot pose
+    * @param robot_pose current given robot pose 
+    * @param trajectory current global plan
+    * @return a minimum distance 
+    */
+  double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
+                                 const std::vector<geometry_msgs::PoseStamped>& trajectory);
+
 };
 #endif

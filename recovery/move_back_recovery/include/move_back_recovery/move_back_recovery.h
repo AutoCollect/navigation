@@ -34,30 +34,37 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#ifndef STOP_RECOVERY_STOP_RECOVERY_H
-#define STOP_RECOVERY_STOP_RECOVERY_H
+#ifndef MOVE_BACK_RECOVERY_MOVE_BACK_RECOVERY_H_
+#define MOVE_BACK_RECOVERY_MOVE_BACK_RECOVERY_H_
+
+#include <ros/ros.h>
 #include <nav_core/recovery_behavior.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <tf2_ros/buffer.h>
 #include <base_local_planner/costmap_model.h>
 #include <string>
 
-namespace stop_recovery
+namespace move_back_recovery
 {
 /**
- * @class StopRecovery
- * @brief A recovery behavior that stops the robot
+ * @class MoveBackRecovery
+ * @brief A recovery behavior that moves back the robot for a short distance or time period
  */
-class StopRecovery : public nav_core::RecoveryBehavior
+class MoveBackRecovery : public nav_core::RecoveryBehavior
 {
 public:
   /**
    * @brief  Constructor, make sure to call initialize in addition to actually initialize the object
    */
-  StopRecovery();
+  MoveBackRecovery();
 
   /**
-   * @brief  Initialization function for the StopRecovery recovery behavior
+   * @brief  Destructor for the move back recovery behavior
+   */
+  ~MoveBackRecovery();
+
+  /**
+   * @brief  Initialization function for the MoveBackRecovery recovery behavior
    * @param name Namespace used in initialization
    * @param tf (unused)
    * @param global_costmap (unused)
@@ -67,32 +74,23 @@ public:
                   costmap_2d::Costmap2DROS*, costmap_2d::Costmap2DROS* local_costmap);
 
   /**
-   * @brief  Run the StopRecovery recovery behavior.
+   * @brief  Run the MoveBack recovery behavior.
    */
   void runBehavior();
-
-  /**
-   * @brief  Destructor for the stop recovery behavior
-   */
-  ~StopRecovery();
 
 private:
 
   bool initialized_;
 
-  // double sim_granularity_; 
-  // double min_rotational_vel_;
-  // double max_rotational_vel_;
-  // double acc_lim_th_;
-  // double tolerance_;
-
-  double frequency_;
-
   costmap_2d::Costmap2DROS* local_costmap_;
   base_local_planner::CostmapModel* world_model_;
 
-  double stop_duration_;
+  // publish frequency for cmd_vel topic
+  double frequency_;
 
+  // two thresholds decide when to stop move_back recovery behavior
+  double move_back_duration_threshold_;
+  double move_back_distance_threshold_;
 };
-};  // namespace stop_recovery
-#endif  // STOP_RECOVERY_STOP_RECOVERY_H
+};  // namespace move_back_recovery
+#endif  // MOVE_BACK_RECOVERY_MOVE_BACK_RECOVERY_H_

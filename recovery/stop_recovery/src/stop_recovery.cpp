@@ -34,17 +34,17 @@
 *
 * Author: Eitan Marder-Eppstein
 *********************************************************************/
-#include <stop_recovery/stop_recovery.h>
+// system c++ lib
+#include <algorithm>
+#include <string>
+// ros lib
+#include <ros/ros.h>
 #include <pluginlib/class_list_macros.hpp>
 #include <nav_core/parameter_magic.h>
 #include <tf2/utils.h>
-#include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Point.h>
-#include <angles/angles.h>
-#include <algorithm>
-#include <string>
-
+// local module include file
+#include <stop_recovery/stop_recovery.h>
 
 // register this planner as a RecoveryBehavior plugin
 PLUGINLIB_EXPORT_CLASS(stop_recovery::StopRecovery, nav_core::RecoveryBehavior)
@@ -56,7 +56,7 @@ StopRecovery::StopRecovery(): local_costmap_(NULL), initialized_(false), world_m
 }
 
 void StopRecovery::initialize(std::string name, tf2_ros::Buffer*,
-                                costmap_2d::Costmap2DROS*, costmap_2d::Costmap2DROS* local_costmap)
+                              costmap_2d::Costmap2DROS*, costmap_2d::Costmap2DROS* local_costmap)
 {
   if (!initialized_)
   {
@@ -66,16 +66,9 @@ void StopRecovery::initialize(std::string name, tf2_ros::Buffer*,
     ros::NodeHandle private_nh("~/" + name);
     ros::NodeHandle blp_nh("~/TrajectoryPlannerROS");
 
-    // we'll simulate every degree by default
-    // private_nh.param("sim_granularity", sim_granularity_, 0.017);
     private_nh.param("frequency",      frequency_,      10.0);
     private_nh.param("stop_duration",  stop_duration_,  2.0);
-    ROS_INFO("[Stop Recovery] frequency: %f, duration: %f", frequency_, stop_duration_);
-
-    // acc_lim_th_         = nav_core::loadParameterWithDeprecation(blp_nh, "acc_lim_theta",          "acc_lim_th",                  3.2);
-    // max_rotational_vel_ = nav_core::loadParameterWithDeprecation(blp_nh, "max_vel_theta",          "max_rotational_vel",          1.0);
-    // min_rotational_vel_ = nav_core::loadParameterWithDeprecation(blp_nh, "min_in_place_vel_theta", "min_in_place_rotational_vel", 0.4);
-    // blp_nh.param("yaw_goal_tolerance", tolerance_, 0.10);
+    ROS_INFO("[Stop Recovery] frequency: %.1f, duration: %.1f", frequency_, stop_duration_);
 
     world_model_ = new base_local_planner::CostmapModel(*local_costmap_->getCostmap());
 
@@ -105,23 +98,17 @@ void StopRecovery::runBehavior()
     ROS_ERROR("[Stop Recovery] The costmap passed to the StopRecovery object cannot be NULL. Doing nothing.");
     return;
   }
-  ROS_WARN("Stop recovery behavior started.");
+
+  ROS_ERROR("[Stop Recovery] Stop recovery behavior started ...");
 
   ros::Rate r(frequency_);
   ros::NodeHandle n;
   ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 10);
 
-  geometry_msgs::PoseStamped global_pose;
-  local_costmap_->getRobotPose(global_pose);
-
-  double current_angle = tf2::getYaw(global_pose.pose.orientation);
-  double start_angle = current_angle;
-
-  // bool got_180 = false;
   ros::Duration stop_duration(stop_duration_);
   ros::Time init_time = ros::Time::now();
 
-  ROS_INFO("[Stop Recovery] === stop robot triggered ===");
+  // ROS_INFO("[Stop Recovery] stop robot triggered");
   while (n.ok() && (ros::Time::now() - init_time <= stop_duration)) {
     // from current speed to stop quickly
     // TODO: reduce from current robot speed to zero
@@ -133,6 +120,6 @@ void StopRecovery::runBehavior()
     r.sleep();
   }
 
-  ROS_INFO("[Stop Recovery] === end of Stop Recovery ===");
+  ROS_ERROR("[Stop Recovery] End of Stop Recovery");
 }
 };  // namespace stop_recovery
