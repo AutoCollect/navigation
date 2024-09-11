@@ -114,11 +114,12 @@ namespace dwa_local_planner {
        */
       bool isGoalReached();
 
-
-
       bool isInitialized() {
         return initialized_;
       }
+
+      // just heritage the virtual method, do nothing for "old" controller algorithm
+      void initLocalPlan() { /* do nothing */ }
 
     private:
       /**

@@ -78,6 +78,13 @@ namespace nav_core {
       virtual void initialize(std::string name, tf2_ros::Buffer* tf, costmap_2d::Costmap2DROS* costmap_ros) = 0;
 
       /**
+       * @brief once start contoller phrase, init/clear local plan first
+       *        move base flex orchestrates logic 
+       *        work with mf_transformGlobalPlan
+       */
+      virtual void initLocalPlan() = 0;
+
+      /**
        * @brief  Virtual destructor for the interface
        */
       virtual ~BaseLocalPlanner(){}

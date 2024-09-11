@@ -162,7 +162,8 @@ target_link_libraries(metalform_local_planner
  
 add_library(metalform_trajectory_planner_ros
     src/metalform/trajectory_planner.cpp
-    src/metalform/trajectory_planner_ros.cpp)
+    src/metalform/mf_trajectory_planner_ros.cpp)
+    # src/metalform/trajectory_planner_ros.cpp)
 add_dependencies(metalform_trajectory_planner_ros ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(metalform_trajectory_planner_ros
     metalform_local_planner)

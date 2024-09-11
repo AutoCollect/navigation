@@ -163,6 +163,17 @@ namespace base_local_planner {
       /** @brief Return the inner TrajectoryPlanner object.  Only valid after initialize(). */
       TrajectoryPlanner* getPlanner() const { return tc_; }
 
+      /**
+       * @brief once start contoller phrase, init/clear local plan first
+       *        move base flex orchestrates logic 
+       *        work with mf_transformGlobalPlan
+       */
+      void initLocalPlan() { 
+        // debug print
+        // ROS_ERROR("[trajectory_planner_ros] initLocalPlan");  
+        m_transformed_plan_.clear(); 
+      }
+
     private:
       /**
        * @brief Callback to update the local planner's parameters based on dynamic reconfigure
@@ -230,6 +241,10 @@ namespace base_local_planner {
       base_local_planner::OdometryHelperRos odom_helper_;
 
       std::vector<geometry_msgs::Point> footprint_spec_;
+
+      // local plan as a global variable, work with void initLocalPlan()
+      std::vector<geometry_msgs::PoseStamped> m_transformed_plan_;
+
   };
 };
 #endif
