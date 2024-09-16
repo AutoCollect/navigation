@@ -338,6 +338,61 @@ namespace base_local_planner {
     return true;
   }
 
+  void mf_initLocalPlan(const tf2_ros::Buffer& tf,
+      const std::vector<geometry_msgs::PoseStamped>& global_plan,
+      const std::string& global_frame,
+      std::vector<geometry_msgs::PoseStamped>& transformed_plan) {
+
+    // do nothing for first time initialization or 
+    // if transformed_plan is empty
+    if (transformed_plan.empty() || transformed_plan.size() == 0) {
+      // ROS_ERROR("[mf_initLocalPlan] local plan empty");
+      return;
+    }
+
+    // check the availability of global_plan
+    if (global_plan.empty()) {
+      // ROS_ERROR("[mf_initLocalPlan] Received plan with zero length");
+      return;
+    }
+
+    const geometry_msgs::PoseStamped& plan_pose  = global_plan[0];
+    try {
+      // get plan_to_global_transform from plan frame to global_frame
+      geometry_msgs::TransformStamped plan_to_global_transform = tf.lookupTransform(global_frame, ros::Time(),
+          plan_pose.header.frame_id, plan_pose.header.stamp, plan_pose.header.frame_id, ros::Duration(0.5));
+      //========================================
+      // extend 50 waypts to determine the local goal
+      // global_plan is "old" plan, not updated one from makePlan()
+      geometry_msgs::PoseStamped newer_pose;
+      auto global_it = global_plan.begin() + transformed_plan.size();
+      int i = 0, max_extend_pints_num = 50;
+
+      while(global_it != global_plan.end() && i < max_extend_pints_num) {
+        const geometry_msgs::PoseStamped& pose = *global_it;
+        tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+        transformed_plan.push_back(newer_pose);
+        ++global_it;
+        ++i;
+      }
+      //========================================
+    }
+    catch(tf2::LookupException& ex) {
+      ROS_ERROR("No Transform available Error: %s\n", ex.what());
+      return;
+    }
+    catch(tf2::ConnectivityException& ex) {
+      ROS_ERROR("Connectivity Error: %s\n", ex.what());
+      return;
+    }
+    catch(tf2::ExtrapolationException& ex) {
+      ROS_ERROR("Extrapolation Error: %s\n", ex.what());
+      if (!global_plan.empty())
+        ROS_ERROR("Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
+      return;
+    }
+  }
+
   /** 
    * use local plan (transformed_plan) as a global variable
    * 1. each control cycle, local plan only is inserted necessary way points from current global_plan
@@ -379,7 +434,36 @@ namespace base_local_planner {
       //let's get the pose of the robot in the frame of the plan
       geometry_msgs::PoseStamped robot_pose;
       tf.transform(global_pose, robot_pose, plan_pose.header.frame_id);
-
+      //========================================
+      // refill the local plan if necessary
+      if (!transformed_plan.empty()) {
+        // get current local goal
+        geometry_msgs::PoseStamped local_goal = transformed_plan.back();
+        const double goal_th = tf2::getYaw(local_goal.pose.orientation);
+        const double epsilon = 1e-9;
+        geometry_msgs::PoseStamped newer_pose;
+        tf2::doTransform(global_plan[transformed_plan.size()-1], newer_pose, plan_to_global_transform);
+        double dist_diff  = hypot(newer_pose.pose.position.x - local_goal.pose.position.x, 
+                                  newer_pose.pose.position.y - local_goal.pose.position.y);
+        double angle_diff = getGoalOrientationAngleDifference(newer_pose, goal_th);
+        if (dist_diff > epsilon || angle_diff > epsilon) {
+          // ROS_WARN("[mf_transformGlobalPlan] Clear Local Plan");
+          transformed_plan.clear();
+          auto global_it = global_plan.begin();   
+          while(global_it != global_plan.end()) {
+            const geometry_msgs::PoseStamped& pose = *global_it;
+            tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+            transformed_plan.push_back(newer_pose);
+            dist_diff  = hypot(newer_pose.pose.position.x - local_goal.pose.position.x, 
+                                      newer_pose.pose.position.y - local_goal.pose.position.y);
+            angle_diff = getGoalOrientationAngleDifference(newer_pose, goal_th);
+            if (dist_diff < epsilon && angle_diff < epsilon) {
+              break;
+            }
+            ++global_it;
+          }
+        }
+      }
       //========================================
       // calculate max local goal boundary
       // we'll discard points on the plan that are outside the local costmap
@@ -394,8 +478,8 @@ namespace base_local_planner {
       // unsigned int i = transformed_plan.size(); // from index [local goal + 1]
       int previous_local_plan_size = transformed_plan.size();
       //========================================
-
       geometry_msgs::PoseStamped newer_pose;
+
       double current_curvature  = -1000.0;
       double previous_curvature = -1000.0;
       bool   init_flag          = false;
@@ -428,11 +512,10 @@ namespace base_local_planner {
           previous_curvature = current_curvature;
           previous_delta = current_delta;
         }
-
+        //========================================
         if (i >= previous_local_plan_size) {
           transformed_plan.push_back(newer_pose);
         }
-
         //========================================
         // project robot pose onto global plan, to see what the close distace between robot pose & global plan
         double min_dist = projectPoseToTrajectory(robot_pose, global_plan);

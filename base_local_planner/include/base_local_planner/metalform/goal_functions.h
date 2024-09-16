@@ -97,8 +97,20 @@ namespace base_local_planner {
   void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
 
   /**
+   * @brief 
+   * @param tf A reference to a transform listener
+   * @param global_plan The plan to be transformed
+   * @param global_frame The frame to transform the plan to
+   * @param transformed_plan Populated with the transformed plan
+   */
+  void mf_initLocalPlan(const tf2_ros::Buffer& tf,
+      const std::vector<geometry_msgs::PoseStamped>& global_plan,
+      const std::string& global_frame,
+      std::vector<geometry_msgs::PoseStamped>& transformed_plan);
+
+  /**
    * @brief  Metalform Transforms the global plan of the robot from the planner frame to the frame of the costmap,
-   * selects only the (first) part of the plan that is within the costmap area.
+   *         selects only the (first) part of the plan that is within the costmap area.
    * @param tf A reference to a transform listener
    * @param global_plan The plan to be transformed
    * @param robot_pose The pose of the robot in the global frame (same as costmap)

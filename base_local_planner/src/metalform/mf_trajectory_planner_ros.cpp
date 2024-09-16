@@ -400,6 +400,12 @@ namespace base_local_planner {
     return true;
   }
 
+
+  void MFTrajectoryPlannerROS::initLocalPlan() {
+    mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);    
+  }
+
+
   bool MFTrajectoryPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel){
     if (! isInitialized()) {
       ROS_ERROR("[computeVelocityCommands] This planner has not been initialized, please call initialize() before using this planner");

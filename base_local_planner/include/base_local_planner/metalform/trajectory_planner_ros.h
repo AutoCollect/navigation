@@ -168,11 +168,7 @@ namespace base_local_planner {
        *        move base flex orchestrates logic 
        *        work with mf_transformGlobalPlan
        */
-      void initLocalPlan() { 
-        // debug print
-        // ROS_ERROR("[trajectory_planner_ros] initLocalPlan");  
-        m_transformed_plan_.clear(); 
-      }
+      void initLocalPlan();
 
     private:
       /**
