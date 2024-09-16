@@ -421,6 +421,7 @@ namespace base_local_planner {
 
     double footprint_cost = tc_->footprintCost(global_pose.pose.position.x, global_pose.pose.position.y, tf2::getYaw(global_pose.pose.orientation));
     if (footprint_cost == costmap_2d::LETHAL_OBSTACLE) {
+      ROS_ERROR("[computeVelocityCommands] footprint cost == LETHAL_OBSTACLE");
       return false;
     }
 
@@ -521,6 +522,7 @@ namespace base_local_planner {
       publishPlan(m_transformed_plan_, g_plan_pub_);
       publishPlan(local_plan, l_plan_pub_);
 
+      // ROS_WARN("[computeVelocityCommands] normal cmd_vel");
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
     }
@@ -573,6 +575,7 @@ namespace base_local_planner {
     //publish information to the visualizer
     publishPlan(m_transformed_plan_, g_plan_pub_);
     publishPlan(local_plan, l_plan_pub_);
+    // ROS_WARN("[computeVelocityCommands] normal cmd_vel");
     return true;
   }
 
