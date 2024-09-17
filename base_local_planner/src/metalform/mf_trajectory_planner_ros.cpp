@@ -111,6 +111,9 @@ namespace base_local_planner {
       std::string world_model_type;
       rotating_to_goal_ = false;
 
+      // init cropped & pruned local plan
+      m_transformed_plan_.clear();
+
       //initialize the copy of the costmap the controller will use
       costmap_ = costmap_ros_->getCostmap();
 
@@ -397,6 +400,12 @@ namespace base_local_planner {
     return true;
   }
 
+
+  void MFTrajectoryPlannerROS::initLocalPlan() {
+    mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);    
+  }
+
+
   bool MFTrajectoryPlannerROS::computeVelocityCommands(geometry_msgs::Twist& cmd_vel){
     if (! isInitialized()) {
       ROS_ERROR("[computeVelocityCommands] This planner has not been initialized, please call initialize() before using this planner");
@@ -412,15 +421,16 @@ namespace base_local_planner {
 
     double footprint_cost = tc_->footprintCost(global_pose.pose.position.x, global_pose.pose.position.y, tf2::getYaw(global_pose.pose.orientation));
     if (footprint_cost == costmap_2d::LETHAL_OBSTACLE) {
+      ROS_ERROR("[computeVelocityCommands] footprint cost == LETHAL_OBSTACLE");
       return false;
     }
 
-    std::vector<geometry_msgs::PoseStamped> transformed_plan;
+    // std::vector<geometry_msgs::PoseStamped> transformed_plan;
     bool turn_flag   = false;
     bool has_suspect = false;
     //get the global plan in our frame
     //add footprint_cost to make sure low speed 0.3m/s in low bush
-    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, transformed_plan, turn_flag, has_suspect)) {
+    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_transformed_plan_, turn_flag, has_suspect)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
@@ -440,13 +450,13 @@ namespace base_local_planner {
     odom_helper_.getRobotVel(robot_vel);
     //now we'll prune the plan based on the position of the robot
     if(prune_plan_)
-      mf_prunePlan(global_pose, robot_vel, transformed_plan, global_plan_);
+      mf_prunePlan(global_pose, robot_vel, m_transformed_plan_, global_plan_);
 
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
 
     //if the global plan passed in is empty... we won't do anything
-    if(transformed_plan.empty()) {
+    if(m_transformed_plan_.empty()) {
       ROS_ERROR("[computeVelocityCommands] transformed_plan empty");
       return false;
     }
@@ -482,7 +492,7 @@ namespace base_local_planner {
       } else {
         //we need to call the next two lines to make sure that the trajectory
         //planner updates its path distance and goal distance grids
-        tc_->updatePlan(transformed_plan);
+        tc_->updatePlan(m_transformed_plan_);
         Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
         map_viz_.publishCostCloud(costmap_);
 
@@ -509,14 +519,15 @@ namespace base_local_planner {
       }
 
       //publish an empty plan because we've reached our goal position
-      publishPlan(transformed_plan, g_plan_pub_);
+      publishPlan(m_transformed_plan_, g_plan_pub_);
       publishPlan(local_plan, l_plan_pub_);
 
+      // ROS_WARN("[computeVelocityCommands] normal cmd_vel");
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
     }
 
-    tc_->updatePlan(transformed_plan);
+    tc_->updatePlan(m_transformed_plan_);
 
     //compute what trajectory to drive along
     Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
@@ -540,7 +551,7 @@ namespace base_local_planner {
       //     "The rollout planner failed to find a valid plan. This means that the footprint of the robot was in collision for all simulated trajectories.");
       ROS_ERROR("[computeVelocityCommands] The footprint was in collision for all simulated trajectories");
       local_plan.clear();
-      publishPlan(transformed_plan, g_plan_pub_);
+      publishPlan(m_transformed_plan_, g_plan_pub_);
       publishPlan(local_plan, l_plan_pub_);
       return false;
     }
@@ -562,8 +573,9 @@ namespace base_local_planner {
     }
 
     //publish information to the visualizer
-    publishPlan(transformed_plan, g_plan_pub_);
+    publishPlan(m_transformed_plan_, g_plan_pub_);
     publishPlan(local_plan, l_plan_pub_);
+    // ROS_WARN("[computeVelocityCommands] normal cmd_vel");
     return true;
   }
 

@@ -634,61 +634,89 @@ namespace base_local_planner{
         }
         vx_samp += dvx;
       }
+
+      //only explore y velocities with holonomic robots
+      // if (holonomic_robot_) {
+      //   //explore trajectories that move forward but also strafe slightly
+      //   vx_samp = 0.1;
+      //   vy_samp = 0.1;
+      //   vtheta_samp = 0.0;
+      //   generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+      //       acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+
+      //   //if the new trajectory is better... let's take it
+      //   if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
+      //     swap = best_traj;
+      //     best_traj = comp_traj;
+      //     comp_traj = swap;
+      //   }
+
+      //   vx_samp = 0.1;
+      //   vy_samp = -0.1;
+      //   vtheta_samp = 0.0;
+      //   generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+      //       acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+
+      //   //if the new trajectory is better... let's take it
+      //   if(comp_traj->cost_ >= 0 && (comp_traj->cost_ < best_traj->cost_ || best_traj->cost_ < 0)){
+      //     swap = best_traj;
+      //     best_traj = comp_traj;
+      //     comp_traj = swap;
+      //   }
+      // }
     } // end if not escaping
 
-    //============================================================================
     //next we want to generate trajectories for rotating in place
-    // vtheta_samp = min_vel_theta;
-    // vx_samp = 0.0;
-    // vy_samp = 0.0;
+    vtheta_samp = min_vel_theta;
+    vx_samp = 0.0;
+    vy_samp = 0.0;
 
-    // //let's try to rotate toward open space
-    // double heading_dist = DBL_MAX;
+    //let's try to rotate toward open space
+    double heading_dist = DBL_MAX;
 
-    // for(int i = 0; i < vtheta_samples_; ++i) {
-    //   //enforce a minimum rotational velocity because the base can't handle small in-place rotations
-    //   double vtheta_samp_limited = vtheta_samp > 0 ? max(vtheta_samp, min_in_place_vel_th_)
-    //     : min(vtheta_samp, -1.0 * min_in_place_vel_th_);
+    for(int i = 0; i < vtheta_samples_; ++i) {
+      //enforce a minimum rotational velocity because the base can't handle small in-place rotations
+      double vtheta_samp_limited = vtheta_samp > 0 ? max(vtheta_samp, min_in_place_vel_th_)
+        : min(vtheta_samp, -1.0 * min_in_place_vel_th_);
 
-    //   generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp_limited,
-    //       acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+      generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp_limited,
+          acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
 
-    //   //if the new trajectory is better... let's take it...
-    //   //note if we can legally rotate in place we prefer to do that rather than move with y velocity
-    //   if(comp_traj->cost_ >= 0
-    //       && (comp_traj->cost_ <= best_traj->cost_ || best_traj->cost_ < 0 || best_traj->yv_ != 0.0)
-    //       && (vtheta_samp > dvtheta || vtheta_samp < -1 * dvtheta)){
-    //     double x_r, y_r, th_r;
-    //     comp_traj->getEndpoint(x_r, y_r, th_r);
-    //     x_r += heading_lookahead_ * cos(th_r);
-    //     y_r += heading_lookahead_ * sin(th_r);
-    //     unsigned int cell_x, cell_y;
+      //if the new trajectory is better... let's take it...
+      //note if we can legally rotate in place we prefer to do that rather than move with y velocity
+      if(comp_traj->cost_ >= 0
+          && (comp_traj->cost_ <= best_traj->cost_ || best_traj->cost_ < 0 || best_traj->yv_ != 0.0)
+          && (vtheta_samp > dvtheta || vtheta_samp < -1 * dvtheta)){
+        double x_r, y_r, th_r;
+        comp_traj->getEndpoint(x_r, y_r, th_r);
+        x_r += heading_lookahead_ * cos(th_r);
+        y_r += heading_lookahead_ * sin(th_r);
+        unsigned int cell_x, cell_y;
 
-    //     //make sure that we'll be looking at a legal cell
-    //     if (costmap_.worldToMap(x_r, y_r, cell_x, cell_y)) {
-    //       double ahead_gdist = goal_map_(cell_x, cell_y).target_dist;
-    //       if (ahead_gdist < heading_dist) {
-    //         //if we haven't already tried rotating left since we've moved forward
-    //         if (vtheta_samp < 0 && !stuck_left) {
-    //           swap = best_traj;
-    //           best_traj = comp_traj;
-    //           comp_traj = swap;
-    //           heading_dist = ahead_gdist;
-    //         }
-    //         //if we haven't already tried rotating right since we've moved forward
-    //         else if(vtheta_samp > 0 && !stuck_right) {
-    //           swap = best_traj;
-    //           best_traj = comp_traj;
-    //           comp_traj = swap;
-    //           heading_dist = ahead_gdist;
-    //         }
-    //       }
-    //     }
-    //   }
+        //make sure that we'll be looking at a legal cell
+        if (costmap_.worldToMap(x_r, y_r, cell_x, cell_y)) {
+          double ahead_gdist = goal_map_(cell_x, cell_y).target_dist;
+          if (ahead_gdist < heading_dist) {
+            //if we haven't already tried rotating left since we've moved forward
+            if (vtheta_samp < 0 && !stuck_left) {
+              swap = best_traj;
+              best_traj = comp_traj;
+              comp_traj = swap;
+              heading_dist = ahead_gdist;
+            }
+            //if we haven't already tried rotating right since we've moved forward
+            else if(vtheta_samp > 0 && !stuck_right) {
+              swap = best_traj;
+              best_traj = comp_traj;
+              comp_traj = swap;
+              heading_dist = ahead_gdist;
+            }
+          }
+        }
+      }
 
-    //   vtheta_samp += dvtheta;
-    // }
-    //============================================================================
+      vtheta_samp += dvtheta;
+    }
 
     //do we have a legal trajectory
     if (best_traj->cost_ >= 0) {
@@ -743,6 +771,52 @@ namespace base_local_planner{
       trajectories_.points.clear();
       return *best_traj;
     }
+
+    //only explore y velocities with holonomic robots
+    // if (holonomic_robot_) {
+    //   //if we can't rotate in place or move forward... maybe we can move sideways and rotate
+    //   vtheta_samp = min_vel_theta;
+    //   vx_samp = 0.0;
+
+    //   //loop through all y velocities
+    //   for(unsigned int i = 0; i < y_vels_.size(); ++i){
+    //     vtheta_samp = 0;
+    //     vy_samp = y_vels_[i];
+    //     //sample completely horizontal trajectories
+    //     generateTrajectory(x, y, theta, vx, vy, vtheta, vx_samp, vy_samp, vtheta_samp,
+    //         acc_x, acc_y, acc_theta, impossible_cost, *comp_traj);
+
+    //     //if the new trajectory is better... let's take it
+    //     if(comp_traj->cost_ >= 0 && (comp_traj->cost_ <= best_traj->cost_ || best_traj->cost_ < 0)){
+    //       double x_r, y_r, th_r;
+    //       comp_traj->getEndpoint(x_r, y_r, th_r);
+    //       x_r += heading_lookahead_ * cos(th_r);
+    //       y_r += heading_lookahead_ * sin(th_r);
+    //       unsigned int cell_x, cell_y;
+
+    //       //make sure that we'll be looking at a legal cell
+    //       if(costmap_.worldToMap(x_r, y_r, cell_x, cell_y)) {
+    //         double ahead_gdist = goal_map_(cell_x, cell_y).target_dist;
+    //         if (ahead_gdist < heading_dist) {
+    //           //if we haven't already tried strafing left since we've moved forward
+    //           if (vy_samp > 0 && !stuck_left_strafe) {
+    //             swap = best_traj;
+    //             best_traj = comp_traj;
+    //             comp_traj = swap;
+    //             heading_dist = ahead_gdist;
+    //           }
+    //           //if we haven't already tried rotating right since we've moved forward
+    //           else if(vy_samp < 0 && !stuck_right_strafe) {
+    //             swap = best_traj;
+    //             best_traj = comp_traj;
+    //             comp_traj = swap;
+    //             heading_dist = ahead_gdist;
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
 
     //do we have a legal trajectory
     if (best_traj->cost_ >= 0) {

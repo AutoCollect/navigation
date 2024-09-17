@@ -160,6 +160,9 @@ namespace base_local_planner {
       /** @brief Return the inner TrajectoryPlanner object.  Only valid after initialize(). */
       TrajectoryPlanner* getPlanner() const { return tc_; }
 
+      // just heritage the virtual method, do nothing for "old" controller algorithm
+      void initLocalPlan() { /* do nothing */ }
+
     private:
       /**
        * @brief Callback to update the local planner's parameters based on dynamic reconfigure
