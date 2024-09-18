@@ -442,6 +442,7 @@ namespace base_local_planner {
 
       // low bush suspect obstacle speed
       if (footprint_cost == costmap_2d::SUSPECT_OBSTACLE || has_suspect) {
+        ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
         tc_->setMinVelocityX(0.3);
       }
     }
