@@ -532,7 +532,8 @@ namespace base_local_planner {
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
-              costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+              // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+              costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
                 has_suspect = true;
                 // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: has_suspect, sq_dist: %f, min_dist: %f", sq_dist, min_dist);
                 break;
@@ -544,7 +545,8 @@ namespace base_local_planner {
         // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
         if ((sq_dist >= 0.1) && // define the local goal to make sure 0.3 m/s low speed forward
             (min_dist < 0.5) &&
-            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+            // (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+            (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
           ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
           break;
         }
