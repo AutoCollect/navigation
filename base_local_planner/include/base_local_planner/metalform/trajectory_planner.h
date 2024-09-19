@@ -222,6 +222,8 @@ namespace base_local_planner {
 
       void setMinVelocityX(const double& min_vel_x);
 
+      void setMaxVelocityX(const double& max_vel_x);
+
     private:
       /**
        * @brief  Create the trajectories we wish to explore, score them, and return the best option

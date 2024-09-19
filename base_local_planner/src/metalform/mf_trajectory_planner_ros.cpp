@@ -436,6 +436,7 @@ namespace base_local_planner {
     }
 
     tc_->setMinVelocityX(0.0);
+    tc_->setMaxVelocityX(0.9);
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
       tc_->setMinVelocityX(min_vel_x_);
@@ -445,6 +446,8 @@ namespace base_local_planner {
         ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
         tc_->setMinVelocityX(0.3);
       }
+    } else if (has_suspect) {
+      tc_->setMaxVelocityX(0.3);
     }
 	
     geometry_msgs::PoseStamped robot_vel;

@@ -1021,6 +1021,11 @@ namespace base_local_planner{
     min_vel_x_ = min_vel_x;
   }
 
+  void TrajectoryPlanner::setMaxVelocityX(const double& max_vel_x) {
+    max_vel_x_ = max_vel_x;
+  }
+
+
   void TrajectoryPlanner::getLocalGoal(double& x, double& y){
     x = path_map_.goal_x_;
     y = path_map_.goal_y_;
