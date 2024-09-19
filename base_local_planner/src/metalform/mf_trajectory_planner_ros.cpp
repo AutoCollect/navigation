@@ -446,7 +446,7 @@ namespace base_local_planner {
         ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
         tc_->setMinVelocityX(0.3);
       }
-    } else if (has_suspect) {
+    } else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
       tc_->setMaxVelocityX(0.3);
     }
 	
