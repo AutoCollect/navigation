@@ -360,12 +360,14 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
   // update the global current status
   current_ = current;
 
-  // raytrace freespace
-  for (unsigned int i = 0; i < clearing_observations.size(); ++i)
-  {
-    // clear freespace based on one observation with optimized algorithm, but need more computation
-    optimizedRaytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
-    // raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
+  if (!suspect_obstacle_layer_) {
+    // raytrace freespace
+    for (unsigned int i = 0; i < clearing_observations.size(); ++i)
+    {
+      // clear freespace based on one observation with optimized algorithm, but need more computation
+      optimizedRaytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
+      // raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
+    }
   }
 
   // place the new obstacles into a priority queue... each with a priority of zero to begin with
