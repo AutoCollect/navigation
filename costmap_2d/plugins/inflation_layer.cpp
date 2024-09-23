@@ -239,7 +239,8 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
   // can overtake previously inserted but farther away cells
   std::map<double, std::vector<CellData> >::iterator bin;
 
-  #pragma omp parallel for schedule(dynamic)
+  // Parallelize both loops with dynamic scheduling
+  #pragma omp parallel for schedule(dynamic) collapse(2)
   for (bin = inflation_cells_.begin(); bin != inflation_cells_.end(); ++bin)
   {
     for (int i = 0; i < bin->second.size(); ++i)
