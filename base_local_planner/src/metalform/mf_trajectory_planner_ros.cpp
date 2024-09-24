@@ -440,16 +440,16 @@ namespace base_local_planner {
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
       tc_->setMinVelocityX(min_vel_x_);
-
+      ROS_ERROR("[computeVelocityCommands] should turn flag");
       // low bush suspect obstacle speed
       if (footprint_cost == costmap_2d::SUSPECT_OBSTACLE || has_suspect) {
         // ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
         tc_->setMinVelocityX(0.3);
       }
     }
-    else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
+    else if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
       tc_->setMaxVelocityX(0.3);
-      ROS_ERROR("set max speed 0.3");
+      ROS_ERROR("[computeVelocityCommands] Set Max Speed 0.3 m/s");
       // tc_->setMinVelocityX(0.3);
     }
 	
