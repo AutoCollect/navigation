@@ -552,20 +552,20 @@ namespace base_local_planner {
         //=========================================
         // gazebo simulation
         //=========================================
-        if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
-            (min_dist < 0.5)  &&
-            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
-          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
-          break;
-        }
+        // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
+        //     (min_dist < 0.5)  &&
+        //     (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+        //   // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+        //   break;
+        // }
         //=========================================
         // aucobot test
         //=========================================
-        // if ((min_dist < 0.5) && // define the local goal to make sure 0.3 m/s low speed forward
-        //     (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
-        //   ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
-        //   break;
-        // }
+        if ((min_dist < 0.5) && // define the local goal to make sure 0.3 m/s low speed forward
+            (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
+          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+          break;
+        }
         //=========================================
         ++i;
       }
