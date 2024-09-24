@@ -563,7 +563,7 @@ namespace base_local_planner {
         //=========================================
         if ((min_dist < 0.5) && // define the local goal to make sure 0.3 m/s low speed forward
             (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
-          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
           break;
         }
         //=========================================

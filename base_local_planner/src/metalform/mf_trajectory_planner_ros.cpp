@@ -449,6 +449,7 @@ namespace base_local_planner {
     }
     else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
       tc_->setMaxVelocityX(0.3);
+      ROS_ERROR("set max speed 0.3");
       // tc_->setMinVelocityX(0.3);
     }
 	
