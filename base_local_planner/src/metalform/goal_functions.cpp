@@ -372,7 +372,7 @@ namespace base_local_planner {
       // global_plan is "old" plan, not updated one from makePlan()
       geometry_msgs::PoseStamped newer_pose;
       auto global_it = global_plan.begin() + transformed_plan.size();
-      int i = 0, max_extend_pints_num = 50;
+      int i = 0, max_extend_pints_num = 100;
 
       while(global_it != global_plan.end() && i < max_extend_pints_num) {
         const geometry_msgs::PoseStamped& pose = *global_it;
