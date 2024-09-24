@@ -436,7 +436,7 @@ namespace base_local_planner {
     }
 
     tc_->setMinVelocityX(0.0);
-    // tc_->setMaxVelocityX(0.9);
+    tc_->setMaxVelocityX(0.9);
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
       tc_->setMinVelocityX(min_vel_x_);
@@ -448,8 +448,8 @@ namespace base_local_planner {
       }
     }
     else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
-      // tc_->setMaxVelocityX(0.3);
-      tc_->setMinVelocityX(0.3);
+      tc_->setMaxVelocityX(0.3);
+      // tc_->setMinVelocityX(0.3);
     }
 	
     geometry_msgs::PoseStamped robot_vel;
