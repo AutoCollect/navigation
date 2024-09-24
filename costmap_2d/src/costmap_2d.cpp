@@ -94,6 +94,8 @@ void Costmap2D::resetMap(unsigned int x0, unsigned int y0, unsigned int xn, unsi
 {
   boost::unique_lock<mutex_t> lock(*(access_));
   unsigned int len = xn - x0;
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int y = y0 * size_x_ + x0; y < yn * size_x_ + x0; y += size_x_)
     memset(costmap_ + y, default_value_, len * sizeof(unsigned char));
 }
@@ -316,6 +318,8 @@ bool Costmap2D::setConvexPolygonCost(const std::vector<geometry_msgs::Point>& po
 {
   // we assume the polygon is given in the global_frame... we need to transform it to map coordinates
   std::vector<MapLocation> map_polygon;
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < polygon.size(); ++i)
   {
     MapLocation loc;
@@ -333,6 +337,8 @@ bool Costmap2D::setConvexPolygonCost(const std::vector<geometry_msgs::Point>& po
   convexFillCells(map_polygon, polygon_cells);
 
   // set the cost of those cells
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < polygon_cells.size(); ++i)
   {
     unsigned int index = getIndex(polygon_cells[i].x, polygon_cells[i].y);
@@ -344,6 +350,8 @@ bool Costmap2D::setConvexPolygonCost(const std::vector<geometry_msgs::Point>& po
 void Costmap2D::polygonOutlineCells(const std::vector<MapLocation>& polygon, std::vector<MapLocation>& polygon_cells)
 {
   PolygonOutlineCells cell_gatherer(*this, costmap_, polygon_cells);
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < polygon.size() - 1; ++i)
   {
     raytraceLine(cell_gatherer, polygon[i].x, polygon[i].y, polygon[i + 1].x, polygon[i + 1].y);
@@ -390,6 +398,8 @@ void Costmap2D::convexFillCells(const std::vector<MapLocation>& polygon, std::ve
   unsigned int max_x = polygon_cells[polygon_cells.size() - 1].x;
 
   // walk through each column and mark cells inside the polygon
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int x = min_x; x <= max_x; ++x)
   {
     if (i >= polygon_cells.size() - 1)
@@ -418,6 +428,8 @@ void Costmap2D::convexFillCells(const std::vector<MapLocation>& polygon, std::ve
 
     MapLocation pt;
     // loop though cells in the column
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int y = min_pt.y; y <= max_pt.y; ++y)
     {
       pt.x = x;

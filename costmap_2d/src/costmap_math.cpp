@@ -65,6 +65,8 @@ bool intersects(std::vector<geometry_msgs::Point>& polygon, float testx, float t
 {
   bool c = false;
   int i, j, nvert = polygon.size();
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (i = 0, j = nvert - 1; i < nvert; j = i++)
   {
     float yi = polygon[i].y, yj = polygon[j].y, xi = polygon[i].x, xj = polygon[j].x;
@@ -77,6 +79,8 @@ bool intersects(std::vector<geometry_msgs::Point>& polygon, float testx, float t
 
 bool intersects_helper(std::vector<geometry_msgs::Point>& polygon1, std::vector<geometry_msgs::Point>& polygon2)
 {
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < polygon1.size(); i++)
     if (intersects(polygon2, polygon1[i].x, polygon1[i].y))
       return true;

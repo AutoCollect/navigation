@@ -224,6 +224,8 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
   #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       int index = master_grid.getIndex(i, j);

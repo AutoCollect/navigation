@@ -277,6 +277,8 @@ void ObstacleLayer::laserScanValidInfCallback(const sensor_msgs::LaserScanConstP
   // Filter positive infinities ("Inf"s) to max_range.
   float epsilon = 0.0001;  // a tenth of a millimeter
   sensor_msgs::LaserScan message = *raw_message;
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (size_t i = 0; i < message.ranges.size(); i++)
   {
     float range = message.ranges[ i ];
@@ -362,6 +364,8 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
 
   if (!suspect_obstacle_layer_) {
     // raytrace freespace
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i < clearing_observations.size(); ++i)
     {
       // clear freespace based on one observation with optimized algorithm, but need more computation
@@ -371,6 +375,8 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
   }
 
   // place the new obstacles into a priority queue... each with a priority of zero to begin with
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (std::vector<Observation>::const_iterator it = observations.begin(); it != observations.end(); ++it)
   {
     const Observation& obs = *it;
@@ -383,6 +389,8 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
     sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
     sensor_msgs::PointCloud2ConstIterator<float> iter_z(cloud, "z");
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (; iter_x !=iter_x.end(); ++iter_x, ++iter_y, ++iter_z)
     {
       double px = *iter_x, py = *iter_y, pz = *iter_z;
@@ -433,6 +441,8 @@ void ObstacleLayer::updateFootprint(double robot_x, double robot_y, double robot
     if (!footprint_clearing_enabled_) return;
     transformFootprint(robot_x, robot_y, robot_yaw, getFootprint(), transformed_footprint_);
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i < transformed_footprint_.size(); i++)
     {
       touch(transformed_footprint_[i].x, transformed_footprint_[i].y, min_x, min_y, max_x, max_y);
@@ -479,6 +489,8 @@ bool ObstacleLayer::getMarkingObservations(std::vector<Observation>& marking_obs
 {
   bool current = true;
   // get the marking observations
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < marking_buffers_.size(); ++i)
   {
     marking_buffers_[i]->lock();
@@ -495,6 +507,8 @@ bool ObstacleLayer::getClearingObservations(std::vector<Observation>& clearing_o
 {
   bool current = true;
   // get the clearing observations
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < clearing_buffers_.size(); ++i)
   {
     clearing_buffers_[i]->lock();
@@ -536,6 +550,8 @@ void ObstacleLayer::raytraceFreespace(const Observation& clearing_observation, d
   sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
   sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (; iter_x != iter_x.end(); ++iter_x, ++iter_y)
   {
     double wx = *iter_x;
@@ -619,6 +635,8 @@ void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_obser
   sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
   sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (; iter_x != iter_x.end(); ++iter_x, ++iter_y) {
 
     double wx = *iter_x;
@@ -641,6 +659,9 @@ void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_obser
     inflate_pts.push_back(std::make_pair(wx + 3 * inflate_dx, wy + 0             ));  
 
     std::vector< std::pair<double,double> >::iterator inflate_iter;
+
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for(inflate_iter = inflate_pts.begin(); inflate_iter != inflate_pts.end(); inflate_iter++) {
 
       wx = (*inflate_iter).first;
@@ -699,12 +720,16 @@ void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_obser
 void ObstacleLayer::activate()
 {
   // if we're stopped we need to re-subscribe to topics
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_subscribers_.size(); ++i)
   {
     if (observation_subscribers_[i] != NULL)
       observation_subscribers_[i]->subscribe();
   }
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_buffers_.size(); ++i)
   {
     if (observation_buffers_[i])
@@ -713,6 +738,8 @@ void ObstacleLayer::activate()
 }
 void ObstacleLayer::deactivate()
 {
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_subscribers_.size(); ++i)
   {
     if (observation_subscribers_[i] != NULL)

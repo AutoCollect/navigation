@@ -65,6 +65,8 @@ Costmap2DPublisher::Costmap2DPublisher(ros::NodeHandle * ros_node, Costmap2D* co
 
     // regular cost values scale the range 1 to 252 (inclusive) to fit
     // into 1 to 98 (inclusive).
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = 1; i < 253; i++)
     {
       cost_translation_table_[ i ] = char(1 + (97 * (i - 1)) / 251);
@@ -111,6 +113,8 @@ void Costmap2DPublisher::prepareGrid()
   grid_.data.resize(grid_.info.width * grid_.info.height);
 
   unsigned char* data = costmap_->getCharMap();
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < grid_.data.size(); i++)
   {
     grid_.data[i] = cost_translation_table_[ data[ i ]];
@@ -150,8 +154,12 @@ void Costmap2DPublisher::publishCostmap()
     update.data.resize(update.width * update.height);
 
     unsigned int i = 0;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int y = y0_; y < yn_; y++)
     {
+      // Combine OpenMP parallelization and SIMD for loop optimization
+      #pragma omp parallel for simd
       for (unsigned int x = x0_; x < xn_; x++)
       {
         unsigned char cost = costmap_->getCost(x, y);
