@@ -68,6 +68,8 @@ namespace base_local_planner {
     gui_path.header.stamp = path[0].header.stamp;
 
     // Extract the plan in world co-ordinates, we assume the path is all in the same frame
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for(unsigned int i=0; i < path.size(); i++){
       gui_path.poses[i] = path[i];
     }
@@ -170,6 +172,8 @@ namespace base_local_planner {
     double min_dist = std::numeric_limits<double>::max();
     int index = 0;
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = 0; i < num_points; ++i) {
 
       double dist = hypot((trajectory[i].pose.position.x - robot_pose.pose.position.x), 
@@ -277,6 +281,8 @@ namespace base_local_planner {
         //  ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
+        // Combine OpenMP parallelization and SIMD for loop optimization
+        #pragma omp parallel for simd
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
@@ -529,6 +535,8 @@ namespace base_local_planner {
         // ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
+        // Combine OpenMP parallelization and SIMD for loop optimization
+        #pragma omp parallel for simd
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
@@ -542,13 +550,22 @@ namespace base_local_planner {
         //=========================================
         // verify the SUSPECT_OBSTACLE value
         //=========================================
-        // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
-        if ((min_dist < 0.5) &&
-            // (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
-            (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
-          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+        // gazebo simulation
+        //=========================================
+        if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
+            (min_dist < 0.5)  &&
+            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
           break;
         }
+        //=========================================
+        // aucobot test
+        //=========================================
+        // if ((min_dist < 0.5) && // define the local goal to make sure 0.3 m/s low speed forward
+        //     (has_suspect || (footprint_cost >= costmap_2d::SUSPECT_OBSTACLE))) {
+        //   ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+        //   break;
+        // }
         //=========================================
         ++i;
       }

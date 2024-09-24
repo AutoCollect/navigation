@@ -443,11 +443,13 @@ namespace base_local_planner {
 
       // low bush suspect obstacle speed
       if (footprint_cost == costmap_2d::SUSPECT_OBSTACLE || has_suspect) {
-        ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
+        // ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
         tc_->setMinVelocityX(0.3);
       }
-    } else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
+    }
+    else if (has_suspect || footprint_cost >= costmap_2d::SUSPECT_OBSTACLE) {
       tc_->setMaxVelocityX(0.3);
+      tc_->setMinVelocityX(0.3);
     }
 	
     geometry_msgs::PoseStamped robot_vel;
@@ -561,6 +563,8 @@ namespace base_local_planner {
     }
 
     // Fill out the local plan
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i < path.getPointsSize(); ++i) {
       double p_x, p_y, p_th;
       path.getPoint(i, p_x, p_y, p_th);
