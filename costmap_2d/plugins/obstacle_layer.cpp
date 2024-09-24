@@ -518,9 +518,9 @@ void ObstacleLayer::raytraceFreespace(const Observation& clearing_observation, d
   unsigned int x0, y0;
   if (!worldToMap(ox, oy, x0, y0))
   {
-    ROS_WARN_THROTTLE(
-        1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
-        ox, oy);
+    // ROS_WARN_THROTTLE(
+    //     1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
+    //     ox, oy);
     return;
   }
 
@@ -601,9 +601,9 @@ void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_obser
   unsigned int x0, y0;
   if (!worldToMap(ox, oy, x0, y0))
   {
-    ROS_WARN_THROTTLE(
-        1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
-        ox, oy);
+    // ROS_WARN_THROTTLE(
+    //     1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
+    //     ox, oy);
     return;
   }
 
