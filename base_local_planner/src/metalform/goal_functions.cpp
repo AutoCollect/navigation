@@ -535,6 +535,8 @@ namespace base_local_planner {
         // ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
+        // has_suspect based on all local plan way points
+        //========================================
         // Combine OpenMP parallelization and SIMD for loop optimization
         // #pragma omp parallel for simd
         // for (int index = 0; index < transformed_plan.size(); index++) {
@@ -548,19 +550,16 @@ namespace base_local_planner {
         //       }
         // }
         //========================================
-          unsigned int temp_mx, temp_my;
-          if (!transformed_plan.empty() &&
-              costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
-                                 transformed_plan[transformed_plan.size()-1].pose.position.y, 
-                                 temp_mx, temp_my) && 
-              // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
-              costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
-                has_suspect = true;
-          }
+        unsigned int temp_mx, temp_my;
+        if (!transformed_plan.empty() &&
+            costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
+                               transformed_plan[transformed_plan.size()-1].pose.position.y, 
+                               temp_mx, temp_my) && 
+          costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+          has_suspect = true;
+        }
         //=========================================
         // verify the SUSPECT_OBSTACLE value
-        //=========================================
-        // gazebo simulation
         //=========================================
         if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
             (min_dist < 0.5)  &&
@@ -568,14 +567,6 @@ namespace base_local_planner {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
           break;
         }
-        //=========================================
-        // aucobot test
-        //=========================================
-        // if ((min_dist < 0.5) && // define the local goal to make sure 0.3 m/s low speed forward
-        //     (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
-        //   // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
-        //   break;
-        // }
         //=========================================
         ++i;
       }
