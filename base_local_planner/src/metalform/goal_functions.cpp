@@ -536,17 +536,27 @@ namespace base_local_planner {
         //========================================
         // check transformed_plan points cost on trajectory for legality
         // Combine OpenMP parallelization and SIMD for loop optimization
-        #pragma omp parallel for simd
-        for (int index = 0; index < transformed_plan.size(); index++) {
+        // #pragma omp parallel for simd
+        // for (int index = 0; index < transformed_plan.size(); index++) {
+        //   unsigned int temp_mx, temp_my;
+        //   if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
+        //       // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+        //       costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+        //         has_suspect = true;
+        //         // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: has_suspect, sq_dist: %f, min_dist: %f", sq_dist, min_dist);
+        //         break;
+        //       }
+        // }
+        //========================================
           unsigned int temp_mx, temp_my;
-          if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
+          if (!transformed_plan.empty() &&
+              costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
+                                 transformed_plan[transformed_plan.size()-1].pose.position.y, 
+                                 temp_mx, temp_my) && 
               // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
               costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
                 has_suspect = true;
-                // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: has_suspect, sq_dist: %f, min_dist: %f", sq_dist, min_dist);
-                break;
-              }
-        }
+          }
         //=========================================
         // verify the SUSPECT_OBSTACLE value
         //=========================================
