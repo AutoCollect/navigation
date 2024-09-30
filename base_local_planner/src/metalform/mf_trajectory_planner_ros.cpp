@@ -455,10 +455,12 @@ namespace base_local_planner {
       }
     }
     else if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
-      tc_->setMaxVelocityX(0.3);
       if (near_field_flag) {
         tc_->setMaxVelocityX(0.2);
-        ROS_ERROR("[computeVelocityCommands] near field flag");
+        ROS_ERROR("[computeVelocityCommands] 0.2 m/s near field");
+      } else{
+        tc_->setMaxVelocityX(0.3);
+        ROS_ERROR("[computeVelocityCommands] 0.3 m/s lower obstacle");
       }
     }
 	

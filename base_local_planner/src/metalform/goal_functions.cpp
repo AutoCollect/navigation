@@ -564,10 +564,14 @@ namespace base_local_planner {
         // verify the SUSPECT_OBSTACLE value
         //=========================================
         // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
-        if ((min_dist < 0.5)  &&
+        if ((sq_dist >= 1.0) && // define the local goal to make sure 0.3 m/s low speed forward
+            (min_dist < 0.5)  &&
             (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
-          if (sq_dist <= 1.0) { near_field_flag = true; }
+          double robot_dist = getGoalPositionDistance(robot_pose,
+                                                      transformed_plan[transformed_plan.size()-1].pose.position.x,
+                                                      transformed_plan[transformed_plan.size()-1].pose.position.y);
+          if (robot_dist <= 1.5) { near_field_flag = true; }
           break;
         }
         //=========================================
