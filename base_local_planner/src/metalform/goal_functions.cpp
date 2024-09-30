@@ -571,7 +571,7 @@ namespace base_local_planner {
           double robot_dist = getGoalPositionDistance(robot_pose,
                                                       transformed_plan[transformed_plan.size()-1].pose.position.x,
                                                       transformed_plan[transformed_plan.size()-1].pose.position.y);
-          if (robot_dist <= 1.5) { near_field_flag = true; }
+          if (robot_dist <= 2.0) { near_field_flag = true; }
           break;
         }
         //=========================================
