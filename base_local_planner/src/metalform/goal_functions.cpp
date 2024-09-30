@@ -415,15 +415,17 @@ namespace base_local_planner {
       const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
-      bool& has_suspect) {
+      bool& has_suspect,
+      bool& near_field_flag) {
 
     //========================================
     // debug print the size of current size of local plan (transformed_plan)
     // ROS_INFO("[mf_transformGlobalPlan] transformed_plan size: %d", int(transformed_plan.size()));
     //========================================
-    // init two bool flag
-    turn_flag   = false;
-    has_suspect = false;
+    // init three bool flags
+    turn_flag       = false;
+    has_suspect     = false;
+    near_field_flag = false;
     //========================================
     // check availability of global plan
     if (global_plan.empty()) {
@@ -565,6 +567,7 @@ namespace base_local_planner {
             (min_dist < 0.5)  &&
             (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+          if (sq_dist <= 2.3) near_field_flag = true;
           break;
         }
         //=========================================

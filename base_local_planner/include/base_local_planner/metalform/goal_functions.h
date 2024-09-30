@@ -119,6 +119,7 @@ namespace base_local_planner {
    * @param transformed_plan Populated with the transformed plan
    * @param turn_flag local goal control the turning speed
    * @param has_suspect low bush detection flag
+   * @param near_field_flag near field flag close to suspect obstacle
    */
   bool mf_transformGlobalPlan(const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
@@ -128,7 +129,8 @@ namespace base_local_planner {
       const double& footprint_cost,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
-      bool& has_suspect);
+      bool& has_suspect,
+      bool& near_field_flag);
 
   /**
    * @brief  Calculte curvature ratio via 3 2D points from trajectory

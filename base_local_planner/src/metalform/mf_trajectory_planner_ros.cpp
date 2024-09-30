@@ -426,11 +426,12 @@ namespace base_local_planner {
     }
 
     // std::vector<geometry_msgs::PoseStamped> transformed_plan;
-    bool turn_flag   = false;
-    bool has_suspect = false;
+    bool turn_flag       = false;
+    bool has_suspect     = false;
+    bool near_field_flag = false;
     //get the global plan in our frame
     //add footprint_cost to make sure low speed 0.3m/s in low bush
-    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_transformed_plan_, turn_flag, has_suspect)) {
+    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_transformed_plan_, turn_flag, has_suspect, near_field_flag)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
@@ -449,12 +450,16 @@ namespace base_local_planner {
       //---------------------------------
       if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
         tc_->setMaxVelocityX(0.3);
-        // ROS_ERROR("[computeVelocityCommands] SUSPECT_OBSTACLE");
+        tc_->setMinVelocityX(0.3);
+        if (near_field_flag) { tc_->setMaxVelocityX(0.2); }
       }
     }
     else if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
       tc_->setMaxVelocityX(0.3);
-      // ROS_ERROR("[computeVelocityCommands] Set Max Speed 0.3 m/s");
+      if (near_field_flag) {
+        tc_->setMaxVelocityX(0.2);
+        // ROS_ERROR("[computeVelocityCommands] near field flag");
+      }
     }
 	
     geometry_msgs::PoseStamped robot_vel;
