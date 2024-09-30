@@ -567,7 +567,7 @@ namespace base_local_planner {
             (min_dist < 0.5)  &&
             (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
-          if (sq_dist <= 2.3) near_field_flag = true;
+          if (sq_dist <= 2.25) near_field_flag = true;
           break;
         }
         //=========================================
