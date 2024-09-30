@@ -141,6 +141,11 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
   geometry_msgs::Twist vel_msg;
   vel_msg.linear.x = linear_vel_back_;
 
+  // real robot bumper slow release speed
+  // avoid produce metalic noise 
+  geometry_msgs::Twist slow_vel;
+  slow_vel.linear.x = -0.2;
+
   //------------------------------------------------
   // timing
   //------------------------------------------------
@@ -190,7 +195,13 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
       return mbf_msgs::RecoveryResult::SUCCESS;
     }
 
-    cmd_vel_pub_.publish(vel_msg);
+    if (dist > step_back_length_ * 0.333) {
+      cmd_vel_pub_.publish(vel_msg);
+    }
+    else {
+      cmd_vel_pub_.publish(slow_vel);
+    }
+
     rate.sleep();
   }
   // stop the robot
