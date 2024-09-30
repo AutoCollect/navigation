@@ -116,6 +116,8 @@ namespace base_local_planner {
    * @param robot_pose The pose of the robot in the global frame (same as costmap)
    * @param costmap A reference to the costmap being used so the window size for transforming can be computed
    * @param global_frame The frame to transform the plan to
+   * @param footprint_cost the current footprint_cost
+   * @param near_field_distance near field distacce for lower obstacle bumper collision
    * @param transformed_plan Populated with the transformed plan
    * @param turn_flag local goal control the turning speed
    * @param has_suspect low bush detection flag
@@ -127,6 +129,7 @@ namespace base_local_planner {
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
       const double& footprint_cost,
+      const double& near_field_distance,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
       bool& has_suspect,

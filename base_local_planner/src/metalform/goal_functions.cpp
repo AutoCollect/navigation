@@ -413,6 +413,7 @@ namespace base_local_planner {
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
       const double& footprint_cost,
+      const double& near_field_distance,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
       bool& has_suspect,
@@ -552,6 +553,7 @@ namespace base_local_planner {
         //       }
         // }
         //========================================
+        // calculate the local goal cost value
         unsigned int temp_mx, temp_my;
         if (!transformed_plan.empty() &&
             costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
@@ -568,10 +570,12 @@ namespace base_local_planner {
             (min_dist < 0.5)  &&
             (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+          //=========================================
+          // calculate the distace between local goal and robot pose
           double robot_dist = getGoalPositionDistance(robot_pose,
                                                       transformed_plan[transformed_plan.size()-1].pose.position.x,
                                                       transformed_plan[transformed_plan.size()-1].pose.position.y);
-          if (robot_dist <= 2.0) { near_field_flag = true; }
+          if (robot_dist <= near_field_distance) { near_field_flag = true; }
           break;
         }
         //=========================================

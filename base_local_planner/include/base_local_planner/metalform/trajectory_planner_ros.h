@@ -218,7 +218,7 @@ namespace base_local_planner {
       bool prune_plan_;
       boost::recursive_mutex odom_lock_;
 
-      double min_vel_x_;
+      double min_vel_x_, max_vel_x_;
       double max_vel_th_, min_vel_th_;
       double acc_lim_x_, acc_lim_y_, acc_lim_theta_;
       double sim_period_;
@@ -241,6 +241,14 @@ namespace base_local_planner {
       // local plan as a global variable, work with void initLocalPlan()
       std::vector<geometry_msgs::PoseStamped> m_transformed_plan_;
 
+      // lower obstacle max vel x
+      double m_suspect_vel_x_;
+      // lower obstacle bumper collision max vel x
+      double m_suspect_near_field_vel_x;
+      // turning curve max vel x 
+      double m_turning_vel_x_;
+      // near field distacce for lower obstacle bumper collision
+      double m_near_field_distance_;
   };
 };
 #endif
