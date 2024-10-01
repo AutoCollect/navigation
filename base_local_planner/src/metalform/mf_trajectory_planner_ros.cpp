@@ -436,7 +436,7 @@ namespace base_local_planner {
 
     // std::vector<geometry_msgs::PoseStamped> transformed_plan;
     bool turn_flag       = false;
-    bool has_suspect     = false;
+    int  has_suspect     = NONE;
     bool near_field_flag = false;
     //get the global plan in our frame
     //add footprint_cost to make sure low speed 0.3m/s in low bush
@@ -457,19 +457,19 @@ namespace base_local_planner {
       //=============================
       // lower suspect obstacle speed
       //=============================
-      if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
+      if (has_suspect > NONE || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
         tc_->setMaxVelocityX(m_suspect_vel_x_);
         tc_->setMinVelocityX(m_suspect_vel_x_);
         if (near_field_flag) { tc_->setMaxVelocityX(m_suspect_near_field_vel_x); }
       }
     }
-    else if (has_suspect || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
+    else if (has_suspect > NONE || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
       if (near_field_flag) {
         tc_->setMaxVelocityX(m_suspect_near_field_vel_x);
-        ROS_ERROR("[computeVelocityCommands] %f m/s within %f m near field", m_suspect_near_field_vel_x, m_near_field_distance_);
+        ROS_ERROR("[computeVelocityCommands] %0.2f m/s within %0.2f m near field", m_suspect_near_field_vel_x, m_near_field_distance_);
       } else{
         tc_->setMaxVelocityX(m_suspect_vel_x_);
-        ROS_ERROR("[computeVelocityCommands] %f m/s lower obstacle", m_suspect_vel_x_);
+        ROS_ERROR("[computeVelocityCommands] %0.2f m/s lower obstacle", m_suspect_vel_x_);
       }
     }
 	

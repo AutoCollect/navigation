@@ -416,7 +416,7 @@ namespace base_local_planner {
       const double& near_field_distance,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
-      bool& has_suspect,
+      int& has_suspect,
       bool& near_field_flag) {
 
     //========================================
@@ -425,7 +425,7 @@ namespace base_local_planner {
     //========================================
     // init three bool flags
     turn_flag       = false;
-    has_suspect     = false;
+    has_suspect     = NONE;
     near_field_flag = false;
     //========================================
     // check availability of global plan
@@ -540,35 +540,35 @@ namespace base_local_planner {
         // check transformed_plan points cost on trajectory for legality
         // has_suspect based on all local plan way points
         //========================================
-        // Combine OpenMP parallelization and SIMD for loop optimization
-        // #pragma omp parallel for simd
-        // for (int index = 0; index < transformed_plan.size(); index++) {
-        //   unsigned int temp_mx, temp_my;
-        //   if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
-        //       // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
-        //       costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
-        //         has_suspect = true;
-        //         // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: has_suspect, sq_dist: %f, min_dist: %f", sq_dist, min_dist);
-        //         break;
-        //       }
-        // }
-        //========================================
-        // calculate the local goal cost value
-        unsigned int temp_mx, temp_my;
-        if (!transformed_plan.empty() &&
-            costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
-                               transformed_plan[transformed_plan.size()-1].pose.position.y, 
-                               temp_mx, temp_my) && 
-          costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
-          has_suspect = true;
+        for (int index = 0; index < transformed_plan.size(); index++) {
+          unsigned int temp_mx, temp_my;
+          if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
+              // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+              costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+                if (index < (transformed_plan.size() -1))
+                  has_suspect = OBSTACLE_ON_ROAD;
+                else
+                  has_suspect = OBSTACLE_AT_GOAL;
+                break;
+              }
         }
+        //========================================
+        // has_suspect calculate only on local goal cost value
+        // unsigned int temp_mx, temp_my;
+        // if (!transformed_plan.empty() &&
+        //     costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
+        //                        transformed_plan[transformed_plan.size()-1].pose.position.y, 
+        //                        temp_mx, temp_my) && 
+        //   costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+        //   has_suspect = OBSTACLE_AT_GOAL;
+        // }
         //=========================================
         // verify the SUSPECT_OBSTACLE value
         //=========================================
         // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
         if ((sq_dist >= 1.0) && // define the local goal to make sure 0.3 m/s low speed forward
             (min_dist < 0.5)  &&
-            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+            (has_suspect > NONE || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
           // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
           //=========================================
           // calculate the distace between local goal and robot pose

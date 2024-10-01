@@ -144,7 +144,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
   // real robot bumper slow release speed
   // avoid produce metalic noise 
   geometry_msgs::Twist slow_vel;
-  slow_vel.linear.x = -0.2;
+  slow_vel.linear.x = -0.15;
 
   //------------------------------------------------
   // timing
