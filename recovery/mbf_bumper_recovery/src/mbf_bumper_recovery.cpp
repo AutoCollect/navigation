@@ -97,6 +97,10 @@ void BumperRecovery::initialize(std::string name, tf2_ros::Buffer*, costmap_2d::
 }
 
 void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
+
+  // Lock mutex to ensure thread-safe access
+  std::lock_guard<std::mutex> lock(m_bumper_op_mtx_);
+
   bumper_triggered_ = msg->data;
 
   // callback debug print message (only once when triggered)
@@ -115,6 +119,9 @@ void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
 
 uint32_t BumperRecovery::runBehavior(std::string &message) {
   
+  // Lock mutex to ensure thread-safe access
+  std::lock_guard<std::mutex> lock(m_bumper_op_mtx_);
+
   // make sure behavior only for bumper triggered
   if (!bumper_triggered_) {
     ROS_WARN("[Bumper Recovery] runBehavior RecoveryResult::FAILURE bumper_triggered: %d", bumper_triggered_);

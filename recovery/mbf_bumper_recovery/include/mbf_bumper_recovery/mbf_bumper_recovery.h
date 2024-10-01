@@ -44,6 +44,8 @@
 #ifndef MBF_BUMPER_RECOVERY_H_
 #define MBF_BUMPER_RECOVERY_H_
 
+#include <mutex>  // semaphore for shared variable
+
 #include <mbf_costmap_core/costmap_recovery.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <geometry_msgs/Pose2D.h>
@@ -99,6 +101,10 @@ private:
 
   // Initialize the flag to false
   int debug_print_ = 0;
+
+  // mutex to protect write/write operation shared variable
+  std::mutex m_bumper_op_mtx_;
+
 };
 
 } // namespace mbf_bumper_recovery
