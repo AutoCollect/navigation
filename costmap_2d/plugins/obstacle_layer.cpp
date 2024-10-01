@@ -218,6 +218,9 @@ void ObstacleLayer::onInitialize()
 
   dsrv_ = NULL;
   setupDynamicReconfigure(nh);
+
+  // Create a publisher for geometry_msgs/PointStamped
+  // m_point_pub_ = nh.advertise<geometry_msgs::PointStamped>("/sensor_origin", 1000);
 }
 
 void ObstacleLayer::setupDynamicReconfigure(ros::NodeHandle& nh)
@@ -362,16 +365,18 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
   // update the global current status
   current_ = current;
 
-  if (!suspect_obstacle_layer_) {
-    // raytrace freespace
-    // Combine OpenMP parallelization and SIMD for loop optimization
-    #pragma omp parallel for simd
-    for (unsigned int i = 0; i < clearing_observations.size(); ++i)
-    {
-      // clear freespace based on one observation with optimized algorithm, but need more computation
-      optimizedRaytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
-      // raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
-    }
+  // raytrace freespace
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
+  for (unsigned int i = 0; i < clearing_observations.size(); ++i)
+  {
+    // clear freespace based on one observation with optimized algorithm, but need more computation
+    optimizedRaytraceFreespace(clearing_observations[i], robot_yaw, 0.8, min_x, min_y, max_x, max_y);
+    //====================
+    // old/updated version
+    //====================
+    // optimizedRaytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
+    // raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
   }
 
   // place the new obstacles into a priority queue... each with a priority of zero to begin with
@@ -438,6 +443,7 @@ void ObstacleLayer::updateBounds(double robot_x, double robot_y, double robot_ya
 void ObstacleLayer::updateFootprint(double robot_x, double robot_y, double robot_yaw, double* min_x, double* min_y,
                                     double* max_x, double* max_y)
 {
+    if (suspect_obstacle_layer_) return;
     if (!footprint_clearing_enabled_) return;
     transformFootprint(robot_x, robot_y, robot_yaw, getFootprint(), transformed_footprint_);
 
@@ -451,7 +457,7 @@ void ObstacleLayer::updateFootprint(double robot_x, double robot_y, double robot
 
 void ObstacleLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)
 {
-  if (footprint_clearing_enabled_)
+  if (footprint_clearing_enabled_ && !suspect_obstacle_layer_)
   {
     setConvexPolygonCost(transformed_footprint_, costmap_2d::FREE_SPACE);
   }
@@ -611,6 +617,138 @@ void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_obser
 {
   double ox = clearing_observation.origin_.x;
   double oy = clearing_observation.origin_.y;
+  const sensor_msgs::PointCloud2 &cloud = *(clearing_observation.cloud_);
+
+  // get the map coordinates of the origin of the sensor
+  unsigned int x0, y0;
+  if (!worldToMap(ox, oy, x0, y0))
+  {
+    // ROS_WARN_THROTTLE(
+    //     1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
+    //     ox, oy);
+    return;
+  }
+
+  // we can pre-compute the enpoints of the map outside of the inner loop... we'll need these later
+  double origin_x = origin_x_, origin_y = origin_y_;
+  double map_end_x = origin_x + size_x_ * resolution_;
+  double map_end_y = origin_y + size_y_ * resolution_;
+
+
+  touch(ox, oy, min_x, min_y, max_x, max_y);
+
+  // for each point in the cloud, we want to trace a line from the origin and clear obstacles along it
+  sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
+  sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
+
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
+  for (; iter_x != iter_x.end(); ++iter_x, ++iter_y) {
+
+    double wx = *iter_x;
+    double wy = *iter_y;
+
+    double inflate_dx = 0.01, inflate_dy = 0.01;
+    std::vector< std::pair<double,double> > inflate_pts;
+    inflate_pts.push_back(std::make_pair(wx + 0             , wy + 0             ));
+    inflate_pts.push_back(std::make_pair(wx - 0             , wy - inflate_dy    ));
+    inflate_pts.push_back(std::make_pair(wx - inflate_dx    , wy - 0             ));
+    inflate_pts.push_back(std::make_pair(wx + 0             , wy + inflate_dy    ));
+    inflate_pts.push_back(std::make_pair(wx + inflate_dx    , wy + 0             ));
+    inflate_pts.push_back(std::make_pair(wx - 0             , wy - 2 * inflate_dy));
+    inflate_pts.push_back(std::make_pair(wx - 2 * inflate_dx, wy - 0             ));
+    inflate_pts.push_back(std::make_pair(wx + 0             , wy + 2 * inflate_dy));
+    inflate_pts.push_back(std::make_pair(wx + 2 * inflate_dx, wy + 0             ));
+    inflate_pts.push_back(std::make_pair(wx - 0             , wy - 3 * inflate_dy));
+    inflate_pts.push_back(std::make_pair(wx - 3 * inflate_dx, wy - 0             ));
+    inflate_pts.push_back(std::make_pair(wx + 0             , wy + 3 * inflate_dy));
+    inflate_pts.push_back(std::make_pair(wx + 3 * inflate_dx, wy + 0             ));  
+
+    std::vector< std::pair<double,double> >::iterator inflate_iter;
+
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
+    for(inflate_iter = inflate_pts.begin(); inflate_iter != inflate_pts.end(); inflate_iter++) {
+
+      wx = (*inflate_iter).first;
+      wy = (*inflate_iter).second;
+      
+      // now we also need to make sure that the enpoint we're raytracing
+      // to isn't off the costmap and scale if necessary
+      double a = wx - ox;
+      double b = wy - oy;
+
+      // the minimum value to raytrace from is the origin
+      if (wx < origin_x)
+      {
+        double t = (origin_x - ox) / a;
+        wx = origin_x;
+        wy = oy + b * t;
+      }
+      if (wy < origin_y)
+      {
+        double t = (origin_y - oy) / b;
+        wx = ox + a * t;
+        wy = origin_y;
+      }
+
+      // the maximum value to raytrace to is the end of the map
+      if (wx > map_end_x)
+      {
+        double t = (map_end_x - ox) / a;
+        wx = map_end_x - .001;
+        wy = oy + b * t;
+      }
+      if (wy > map_end_y)
+      {
+        double t = (map_end_y - oy) / b;
+        wx = ox + a * t;
+        wy = map_end_y - .001;
+      }
+
+      // now that the vector is scaled correctly... we'll get the map coordinates of its endpoint
+      unsigned int x1, y1;
+
+      // check for legality just in case
+      if (!worldToMap(wx, wy, x1, y1))
+        continue;
+
+      unsigned int cell_raytrace_range = cellDistance(clearing_observation.raytrace_range_);
+      MarkCell marker(costmap_, FREE_SPACE);
+      // and finally... we can execute our trace to clear obstacles along that line
+      raytraceLine(marker, x0, y0, x1, y1, cell_raytrace_range);
+
+      updateRaytraceBounds(ox, oy, wx, wy, clearing_observation.raytrace_range_, min_x, min_y, max_x, max_y);
+    }
+  }
+}
+
+// for lower laser obstacle with respect to min sensor distance for raytrace.
+void ObstacleLayer::optimizedRaytraceFreespace(const Observation& clearing_observation, const double& robot_yaw, const double& sensor_min_distance,
+                                               double* min_x, double* min_y, double* max_x, double* max_y)
+{
+  double ox = clearing_observation.origin_.x;
+  double oy = clearing_observation.origin_.y;
+
+  if (suspect_obstacle_layer_) {
+    // Create a PointStamped message
+    // geometry_msgs::PointStamped point_msg;
+
+    // Fill the header
+    // point_msg.header.stamp = ros::Time::now();
+    // point_msg.header.frame_id = "map"; // Or any frame of reference
+
+    // Set the x, y, z values (for a 2D point, z can be 0)
+    // point_msg.point.x = ox + sensor_min_distance * cos(robot_yaw);
+    // point_msg.point.y = oy + sensor_min_distance * sin(robot_yaw);
+    // point_msg.point.z = 0.0; // For 2D, the z value is typically 0
+
+    // Publish the message
+    // m_point_pub_.publish(point_msg);
+    ox += sensor_min_distance * cos(robot_yaw);
+    oy += sensor_min_distance * sin(robot_yaw);
+  }
+
   const sensor_msgs::PointCloud2 &cloud = *(clearing_observation.cloud_);
 
   // get the map coordinates of the origin of the sensor

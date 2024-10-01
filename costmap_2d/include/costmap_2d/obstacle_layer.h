@@ -152,6 +152,20 @@ protected:
   virtual void optimizedRaytraceFreespace(const costmap_2d::Observation& clearing_observation, double* min_x, double* min_y,
                                           double* max_x, double* max_y);
 
+  /**
+   * @brief for lower laser obstacle with respect to min sensor distance for raytrace. 
+   *        Clear freespace based on one observation with optimized algorithm, but need more computation
+   * @param clearing_observation The observation used to raytrace
+   * @param robot_yaw calculate the transform with respect to robot heading yaw
+   * @param sensor_min_distance lower laser min distance used to raytrace
+   * @param min_x
+   * @param min_y
+   * @param max_x
+   * @param max_y
+   */
+  virtual void optimizedRaytraceFreespace(const Observation& clearing_observation, const double& robot_yaw, const double& sensor_min_distance,
+                                          double* min_x, double* min_y, double* max_x, double* max_y);
+
 
   void updateRaytraceBounds(double ox, double oy, double wx, double wy, double range, double* min_x, double* min_y,
                             double* max_x, double* max_y);
@@ -185,6 +199,9 @@ protected:
 
 private:
   void reconfigureCB(costmap_2d::ObstaclePluginConfig &config, uint32_t level);
+
+  // for lower laser obstacle raytrace debug
+  // ros::Publisher m_point_pub_;
 };
 
 }  // namespace costmap_2d
