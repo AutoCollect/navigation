@@ -322,6 +322,8 @@ protected:
       data_type* dm_index = dest_map + (dm_lower_left_y * dm_size_x + dm_lower_left_x);
 
       // now, we'll copy the source map into the destination map
+      // Combine OpenMP parallelization and SIMD for loop optimization
+      #pragma omp parallel for simd
       for (unsigned int i = 0; i < region_size_y; ++i)
       {
         memcpy(dm_index, sm_index, region_size_x * sizeof(data_type));
@@ -397,6 +399,8 @@ private:
                             int offset_b, unsigned int offset, unsigned int max_length)
     {
       unsigned int end = std::min(max_length, abs_da);
+      // Combine OpenMP parallelization and SIMD for loop optimization
+      #pragma omp parallel for simd
       for (unsigned int i = 0; i < end; ++i)
       {
         at(offset);

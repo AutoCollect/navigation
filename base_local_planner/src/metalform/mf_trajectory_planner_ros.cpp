@@ -214,7 +214,16 @@ namespace base_local_planner {
       private_nh.param("max_vel_x", max_vel_x, 0.5);
       private_nh.param("min_vel_x", min_vel_x, 0.1);
       min_vel_x_ = min_vel_x;
-
+      max_vel_x_ = max_vel_x;
+      // lower obstacle max vel x
+      private_nh.param("suspect_vel_x", m_suspect_vel_x_, 0.3);
+      // lower obstacle bumper collision max vel x
+      private_nh.param("suspect_vel_x_near_field", m_suspect_near_field_vel_x, 0.2);
+      // turning curve max vel x 
+      private_nh.param("turning_vel_x", m_turning_vel_x_, 0.5);
+      // near field distacce for lower obstacle bumper collision
+      private_nh.param("near_field_distance", m_near_field_distance_, 2.0);
+      
       double max_rotational_vel;
       private_nh.param("max_rotational_vel", max_rotational_vel, 1.0);
       max_vel_th_ = max_rotational_vel;
@@ -426,23 +435,41 @@ namespace base_local_planner {
     }
 
     // std::vector<geometry_msgs::PoseStamped> transformed_plan;
-    bool turn_flag   = false;
-    bool has_suspect = false;
+    bool turn_flag       = false;
+    int  has_suspect     = NONE;
+    bool near_field_flag = false;
     //get the global plan in our frame
     //add footprint_cost to make sure low speed 0.3m/s in low bush
-    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_transformed_plan_, turn_flag, has_suspect)) {
+    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_near_field_distance_, m_transformed_plan_, turn_flag, has_suspect, near_field_flag)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
 
+    // speed initiation each control cycle
     tc_->setMinVelocityX(0.0);
+    tc_->setMaxVelocityX(max_vel_x_);
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
-      tc_->setMinVelocityX(min_vel_x_);
+      // try to test the jerk in real robot
+      tc_->setMaxVelocityX(m_turning_vel_x_);
+      tc_->setMinVelocityX(m_turning_vel_x_);
 
-      // low bush suspect obstacle speed
-      if (footprint_cost == costmap_2d::SUSPECT_OBSTACLE || has_suspect) {
-        tc_->setMinVelocityX(0.3);
+      //=============================
+      // lower suspect obstacle speed
+      //=============================
+      if (has_suspect > NONE || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
+        tc_->setMaxVelocityX(m_suspect_vel_x_);
+        tc_->setMinVelocityX(m_suspect_vel_x_);
+        if (near_field_flag) { tc_->setMaxVelocityX(m_suspect_near_field_vel_x); }
+      }
+    }
+    else if (has_suspect > NONE || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
+      if (near_field_flag) {
+        tc_->setMaxVelocityX(m_suspect_near_field_vel_x);
+        ROS_ERROR("[computeVelocityCommands] %0.2f m/s within %0.2f m near field", m_suspect_near_field_vel_x, m_near_field_distance_);
+      } else{
+        tc_->setMaxVelocityX(m_suspect_vel_x_);
+        ROS_ERROR("[computeVelocityCommands] %0.2f m/s lower obstacle", m_suspect_vel_x_);
       }
     }
 	
@@ -557,6 +584,8 @@ namespace base_local_planner {
     }
 
     // Fill out the local plan
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i < path.getPointsSize(); ++i) {
       double p_x, p_y, p_th;
       path.getPoint(i, p_x, p_y, p_th);

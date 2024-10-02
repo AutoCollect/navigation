@@ -21,9 +21,13 @@ void CostmapLayer::matchSize()
 void CostmapLayer::clearArea(int start_x, int start_y, int end_x, int end_y, bool invert_area)
 {
   unsigned char* grid = getCharMap();
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for(int x=0; x<(int)getSizeInCellsX(); x++){
     bool xrange = x>start_x && x<end_x;
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for(int y=0; y<(int)getSizeInCellsY(); y++){
       if((xrange && y>start_y && y<end_y)!=invert_area)
         continue;
@@ -68,9 +72,13 @@ void CostmapLayer::updateWithMax(costmap_2d::Costmap2D& master_grid, int min_i, 
   unsigned char* master_array = master_grid.getCharMap();
   unsigned int span = master_grid.getSizeInCellsX();
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
     unsigned int it = j * span + min_i;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       if (costmap_[it] == NO_INFORMATION){
@@ -94,9 +102,13 @@ void CostmapLayer::updateWithTrueOverwrite(costmap_2d::Costmap2D& master_grid, i
   unsigned char* master = master_grid.getCharMap();
   unsigned int span = master_grid.getSizeInCellsX();
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
     unsigned int it = span*j+min_i;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       master[it] = costmap_[it];
@@ -112,9 +124,13 @@ void CostmapLayer::updateWithOverwrite(costmap_2d::Costmap2D& master_grid, int m
   unsigned char* master = master_grid.getCharMap();
   unsigned int span = master_grid.getSizeInCellsX();
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
     unsigned int it = span*j+min_i;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       if (costmap_[it] != NO_INFORMATION)
@@ -131,9 +147,13 @@ void CostmapLayer::updateWithAddition(costmap_2d::Costmap2D& master_grid, int mi
   unsigned char* master_array = master_grid.getCharMap();
   unsigned int span = master_grid.getSizeInCellsX();
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
     unsigned int it = j * span + min_i;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       if (costmap_[it] == NO_INFORMATION){

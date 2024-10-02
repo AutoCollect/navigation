@@ -280,6 +280,8 @@ void BumperLayer::laserScanValidInfCallback(const sensor_msgs::LaserScanConstPtr
   // Filter positive infinities ("Inf"s) to max_range.
   float epsilon = 0.0001;  // a tenth of a millimeter
   sensor_msgs::LaserScan message = *raw_message;
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (size_t i = 0; i < message.ranges.size(); i++)
   {
     float range = message.ranges[ i ];
@@ -362,12 +364,16 @@ void BumperLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
   current_ = current;
 
   // raytrace freespace
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < clearing_observations.size(); ++i)
   {
     raytraceFreespace(clearing_observations[i], min_x, min_y, max_x, max_y);
   }
 
   // place the new obstacles into a priority queue... each with a priority of zero to begin with
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (std::vector<Observation>::const_iterator it = observations.begin(); it != observations.end(); ++it)
   {
     const Observation& obs = *it;
@@ -380,6 +386,8 @@ void BumperLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
     sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
     sensor_msgs::PointCloud2ConstIterator<float> iter_z(cloud, "z");
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (; iter_x !=iter_x.end(); ++iter_x, ++iter_y, ++iter_z)
     {
       double px = *iter_x, py = *iter_y, pz = *iter_z;
@@ -425,6 +433,8 @@ void BumperLayer::updateFootprint(double robot_x, double robot_y, double robot_y
     if (!footprint_clearing_enabled_) return;
     transformFootprint(robot_x, robot_y, robot_yaw, getFootprint(), transformed_footprint_);
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i < transformed_footprint_.size(); i++)
     {
       touch(transformed_footprint_[i].x, transformed_footprint_[i].y, min_x, min_y, max_x, max_y);
@@ -455,6 +465,8 @@ bool BumperLayer::getMarkingObservations(std::vector<Observation>& marking_obser
 {
   bool current = true;
   // get the marking observations
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < marking_buffers_.size(); ++i)
   {
     marking_buffers_[i]->lock();
@@ -469,6 +481,8 @@ bool BumperLayer::getClearingObservations(std::vector<Observation>& clearing_obs
 {
   bool current = true;
   // get the clearing observations
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < clearing_buffers_.size(); ++i)
   {
     clearing_buffers_[i]->lock();
@@ -490,9 +504,9 @@ void BumperLayer::raytraceFreespace(const Observation& clearing_observation, dou
   unsigned int x0, y0;
   if (!worldToMap(ox, oy, x0, y0))
   {
-    ROS_WARN_THROTTLE(
-        1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
-        ox, oy);
+    // ROS_WARN_THROTTLE(
+    //     1.0, "The origin for the sensor at (%.2f, %.2f) is out of map bounds. So, the costmap cannot raytrace for it.",
+    //     ox, oy);
     return;
   }
 
@@ -508,6 +522,8 @@ void BumperLayer::raytraceFreespace(const Observation& clearing_observation, dou
   sensor_msgs::PointCloud2ConstIterator<float> iter_x(cloud, "x");
   sensor_msgs::PointCloud2ConstIterator<float> iter_y(cloud, "y");
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (; iter_x != iter_x.end(); ++iter_x, ++iter_y)
   {
     double wx = *iter_x;
@@ -565,12 +581,16 @@ void BumperLayer::raytraceFreespace(const Observation& clearing_observation, dou
 void BumperLayer::activate()
 {
   // if we're stopped we need to re-subscribe to topics
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_subscribers_.size(); ++i)
   {
     if (observation_subscribers_[i] != NULL)
       observation_subscribers_[i]->subscribe();
   }
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_buffers_.size(); ++i)
   {
     if (observation_buffers_[i])
@@ -579,6 +599,8 @@ void BumperLayer::activate()
 }
 void BumperLayer::deactivate()
 {
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < observation_subscribers_.size(); ++i)
   {
     if (observation_subscribers_[i] != NULL)

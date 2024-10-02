@@ -219,8 +219,13 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
 
   // Start with lethal obstacles: by definition distance is 0.0
   std::vector<CellData>& obs_bin = inflation_cells_[0.0];
+
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (int j = min_j; j < max_j; j++)
   {
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = min_i; i < max_i; i++)
     {
       int index = master_grid.getIndex(i, j);
@@ -235,8 +240,12 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
   // Process cells by increasing distance; new cells are appended to the corresponding distance bin, so they
   // can overtake previously inserted but farther away cells
   std::map<double, std::vector<CellData> >::iterator bin;
+
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel
   for (bin = inflation_cells_.begin(); bin != inflation_cells_.end(); ++bin)
   {
+    #pragma omp simd
     for (int i = 0; i < bin->second.size(); ++i)
     {
       // process all cells at distance dist_bin.first
@@ -245,7 +254,8 @@ void InflationLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, 
       unsigned int index = cell.index_;
 
       // ignore if already visited
-      if (seen_[index])
+      // if (seen_[index])
+      if (seen_[index] && cell.value_ <= SUSPECT_OBSTACLE)
       {
         continue;
       }
@@ -324,7 +334,9 @@ inline void InflationLayer::enqueue(unsigned int index, unsigned int mx, unsigne
                                     unsigned int src_x, unsigned int src_y,
                                     unsigned char value)
 {
-  if (!seen_[index])
+  // if (!seen_[index])
+  // if (!seen_[index] || value > SUSPECT_OBSTACLE)
+  if (!seen_[index] || (seen_[index] && value > SUSPECT_OBSTACLE))
   {
     // we compute our distance table one cell further than the inflation radius dictates so we can make the check below
     double distance = distanceLookup(mx, my, src_x, src_y);
@@ -335,7 +347,7 @@ inline void InflationLayer::enqueue(unsigned int index, unsigned int mx, unsigne
 
     // push the cell data onto the inflation list and mark
     if (value != SUSPECT_OBSTACLE)
-      inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y));
+      inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y, value));
     else
       inflation_cells_[distance].push_back(CellData(index, mx, my, src_x, src_y, SUSPECT_OBSTACLE));
   }
@@ -355,6 +367,8 @@ void InflationLayer::computeCaches()
     cached_costs_ = new unsigned char*[cell_inflation_radius_ + 2];
     cached_distances_ = new double*[cell_inflation_radius_ + 2];
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i <= cell_inflation_radius_ + 1; ++i)
     {
       cached_costs_[i] = new unsigned char[cell_inflation_radius_ + 2];
@@ -368,6 +382,8 @@ void InflationLayer::computeCaches()
     cached_cell_inflation_radius_ = cell_inflation_radius_;
   }
 
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i <= cell_inflation_radius_ + 1; ++i)
   {
     for (unsigned int j = 0; j <= cell_inflation_radius_ + 1; ++j)
@@ -381,6 +397,7 @@ void InflationLayer::deleteKernels()
 {
   if (cached_distances_ != NULL)
   {
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i <= cached_cell_inflation_radius_ + 1; ++i)
     {
       if (cached_distances_[i])
@@ -393,6 +410,8 @@ void InflationLayer::deleteKernels()
 
   if (cached_costs_ != NULL)
   {
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = 0; i <= cached_cell_inflation_radius_ + 1; ++i)
     {
       if (cached_costs_[i])

@@ -484,6 +484,8 @@ void Costmap2DROS::start()
   if (stopped_)
   {
     // if we're stopped we need to re-subscribe to topics
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (vector<boost::shared_ptr<Layer> >::iterator plugin = plugins->begin(); plugin != plugins->end();
         ++plugin)
     {

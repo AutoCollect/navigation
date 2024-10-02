@@ -198,8 +198,12 @@ void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
   unsigned int index = 0;
 
   // initialize the costmap with static data
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int i = 0; i < size_y; ++i)
   {
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int j = 0; j < size_x; ++j)
     {
       unsigned char value = new_map->data[index];
@@ -227,9 +231,13 @@ void StaticLayer::incomingMap(const nav_msgs::OccupancyGridConstPtr& new_map)
 void StaticLayer::incomingUpdate(const map_msgs::OccupancyGridUpdateConstPtr& update)
 {
   unsigned int di = 0;
+  // Combine OpenMP parallelization and SIMD for loop optimization
+  #pragma omp parallel for simd
   for (unsigned int y = 0; y < update->height ; y++)
   {
     unsigned int index_base = (update->y + y) * size_x_;
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int x = 0; x < update->width ; x++)
     {
       unsigned int index = index_base + x + update->x;
@@ -323,8 +331,12 @@ void StaticLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
     // Copy map data given proper transformations
     tf2::Transform tf2_transform;
     tf2::convert(transform.transform, tf2_transform);
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (unsigned int i = min_i; i < max_i; ++i)
     {
+      // Combine OpenMP parallelization and SIMD for loop optimization
+      #pragma omp parallel for simd
       for (unsigned int j = min_j; j < max_j; ++j)
       {
         // Convert master_grid coordinates (i,j) into global_frame_(wx,wy) coordinates

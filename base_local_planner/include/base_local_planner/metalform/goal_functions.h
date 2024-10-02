@@ -108,6 +108,9 @@ namespace base_local_planner {
       const std::string& global_frame,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan);
 
+  // define the has_suspect type
+  enum HAS_SUSPECT_OBSTACLE_TYPE { NONE = 0, OBSTACLE_ON_ROAD = 1, OBSTACLE_AT_GOAL = 2 };
+
   /**
    * @brief  Metalform Transforms the global plan of the robot from the planner frame to the frame of the costmap,
    *         selects only the (first) part of the plan that is within the costmap area.
@@ -116,9 +119,12 @@ namespace base_local_planner {
    * @param robot_pose The pose of the robot in the global frame (same as costmap)
    * @param costmap A reference to the costmap being used so the window size for transforming can be computed
    * @param global_frame The frame to transform the plan to
+   * @param footprint_cost the current footprint_cost
+   * @param near_field_distance near field distacce for lower obstacle bumper collision
    * @param transformed_plan Populated with the transformed plan
    * @param turn_flag local goal control the turning speed
-   * @param has_suspect low bush detection flag
+   * @param has_suspect low bush detection flag represents the obstacle on road or on local goal
+   * @param near_field_flag near field flag close to suspect obstacle
    */
   bool mf_transformGlobalPlan(const tf2_ros::Buffer& tf,
       const std::vector<geometry_msgs::PoseStamped>& global_plan,
@@ -126,9 +132,11 @@ namespace base_local_planner {
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
       const double& footprint_cost,
+      const double& near_field_distance,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
-      bool& has_suspect);
+      int& has_suspect,
+      bool& near_field_flag);
 
   /**
    * @brief  Calculte curvature ratio via 3 2D points from trajectory

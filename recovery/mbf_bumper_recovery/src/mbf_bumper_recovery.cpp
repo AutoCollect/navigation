@@ -97,6 +97,10 @@ void BumperRecovery::initialize(std::string name, tf2_ros::Buffer*, costmap_2d::
 }
 
 void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
+
+  // Lock mutex to ensure thread-safe access
+  std::lock_guard<std::mutex> lock(m_bumper_op_mtx_);
+
   bumper_triggered_ = msg->data;
 
   // callback debug print message (only once when triggered)
@@ -115,6 +119,9 @@ void BumperRecovery::bumperCallback(const std_msgs::Bool::ConstPtr& msg) {
 
 uint32_t BumperRecovery::runBehavior(std::string &message) {
   
+  // Lock mutex to ensure thread-safe access
+  std::lock_guard<std::mutex> lock(m_bumper_op_mtx_);
+
   // make sure behavior only for bumper triggered
   if (!bumper_triggered_) {
     ROS_WARN("[Bumper Recovery] runBehavior RecoveryResult::FAILURE bumper_triggered: %d", bumper_triggered_);
@@ -140,6 +147,11 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
 
   geometry_msgs::Twist vel_msg;
   vel_msg.linear.x = linear_vel_back_;
+
+  // real robot bumper slow release speed
+  // avoid produce metalic noise 
+  geometry_msgs::Twist slow_vel;
+  slow_vel.linear.x = -0.15;
 
   //------------------------------------------------
   // timing
@@ -190,7 +202,13 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
       return mbf_msgs::RecoveryResult::SUCCESS;
     }
 
-    cmd_vel_pub_.publish(vel_msg);
+    if (dist > step_back_length_ * 0.333) {
+      cmd_vel_pub_.publish(vel_msg);
+    }
+    else {
+      cmd_vel_pub_.publish(slow_vel);
+    }
+
     rate.sleep();
   }
   // stop the robot

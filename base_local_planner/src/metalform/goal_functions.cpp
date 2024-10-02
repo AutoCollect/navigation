@@ -68,6 +68,8 @@ namespace base_local_planner {
     gui_path.header.stamp = path[0].header.stamp;
 
     // Extract the plan in world co-ordinates, we assume the path is all in the same frame
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for(unsigned int i=0; i < path.size(); i++){
       gui_path.poses[i] = path[i];
     }
@@ -170,6 +172,8 @@ namespace base_local_planner {
     double min_dist = std::numeric_limits<double>::max();
     int index = 0;
 
+    // Combine OpenMP parallelization and SIMD for loop optimization
+    #pragma omp parallel for simd
     for (int i = 0; i < num_points; ++i) {
 
       double dist = hypot((trajectory[i].pose.position.x - robot_pose.pose.position.x), 
@@ -277,6 +281,8 @@ namespace base_local_planner {
         //  ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
+        // Combine OpenMP parallelization and SIMD for loop optimization
+        #pragma omp parallel for simd
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
@@ -291,7 +297,7 @@ namespace base_local_planner {
         if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
             (min_dist < 0.5) &&
             (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
-          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
+          ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
           break;
         }
         //=========================================
@@ -366,7 +372,7 @@ namespace base_local_planner {
       // global_plan is "old" plan, not updated one from makePlan()
       geometry_msgs::PoseStamped newer_pose;
       auto global_it = global_plan.begin() + transformed_plan.size();
-      int i = 0, max_extend_pints_num = 50;
+      int i = 0, max_extend_pints_num = 100;
 
       while(global_it != global_plan.end() && i < max_extend_pints_num) {
         const geometry_msgs::PoseStamped& pose = *global_it;
@@ -407,17 +413,20 @@ namespace base_local_planner {
       const costmap_2d::Costmap2D& costmap,
       const std::string& global_frame,
       const double& footprint_cost,
+      const double& near_field_distance,
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
-      bool& has_suspect) {
+      int& has_suspect,
+      bool& near_field_flag) {
 
     //========================================
     // debug print the size of current size of local plan (transformed_plan)
     // ROS_INFO("[mf_transformGlobalPlan] transformed_plan size: %d", int(transformed_plan.size()));
     //========================================
-    // init two bool flag
-    turn_flag   = false;
-    has_suspect = false;
+    // init three bool flags
+    turn_flag       = false;
+    has_suspect     = NONE;
+    near_field_flag = false;
     //========================================
     // check availability of global plan
     if (global_plan.empty()) {
@@ -529,21 +538,44 @@ namespace base_local_planner {
         // ROS_ERROR("[transformGlobalPlan] footprint_cost: %f ", footprint_cost);
         //========================================
         // check transformed_plan points cost on trajectory for legality
+        // has_suspect based on all local plan way points
+        //========================================
         for (int index = 0; index < transformed_plan.size(); index++) {
           unsigned int temp_mx, temp_my;
           if (costmap.worldToMap(transformed_plan[index].pose.position.x, transformed_plan[index].pose.position.y, temp_mx, temp_my) && 
-              costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
-                has_suspect = true;
+              // costmap.getCost(temp_mx, temp_my) == costmap_2d::SUSPECT_OBSTACLE) {
+              costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+                if (index < (transformed_plan.size() -1))
+                  has_suspect = OBSTACLE_ON_ROAD;
+                else
+                  has_suspect = OBSTACLE_AT_GOAL;
                 break;
               }
         }
+        //========================================
+        // has_suspect calculate only on local goal cost value
+        // unsigned int temp_mx, temp_my;
+        // if (!transformed_plan.empty() &&
+        //     costmap.worldToMap(transformed_plan[transformed_plan.size()-1].pose.position.x, 
+        //                        transformed_plan[transformed_plan.size()-1].pose.position.y, 
+        //                        temp_mx, temp_my) && 
+        //   costmap.getCost(temp_mx, temp_my) >= costmap_2d::SUSPECT_OBSTACLE) {
+        //   has_suspect = OBSTACLE_AT_GOAL;
+        // }
         //=========================================
         // verify the SUSPECT_OBSTACLE value
         //=========================================
-        if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
-            (min_dist < 0.5) &&
-            (has_suspect || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
-          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan ");
+        // if ((sq_dist >= 2.25) && // define the local goal to make sure 0.3 m/s low speed forward
+        if ((sq_dist >= 1.0) && // define the local goal to make sure 0.3 m/s low speed forward
+            (min_dist < 0.5)  &&
+            (has_suspect > NONE || (footprint_cost == costmap_2d::SUSPECT_OBSTACLE))) {
+          // ROS_ERROR("[transformGlobalPlan] SUSPECT_OBSTACLE: reduce plan");
+          //=========================================
+          // calculate the distace between local goal and robot pose
+          double robot_dist = getGoalPositionDistance(robot_pose,
+                                                      transformed_plan[transformed_plan.size()-1].pose.position.x,
+                                                      transformed_plan[transformed_plan.size()-1].pose.position.y);
+          if (robot_dist <= near_field_distance) { near_field_flag = true; }
           break;
         }
         //=========================================
@@ -556,7 +588,7 @@ namespace base_local_planner {
         unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
 
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          // ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
+          ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
             if (i >= global_plan_size) {
