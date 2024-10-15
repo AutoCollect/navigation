@@ -446,7 +446,7 @@ namespace base_local_planner {
     }
 
     // speed initiation each control cycle
-    tc_->setMinVelocityX(0.0);
+    tc_->setMinVelocityX(min_vel_x_);
     tc_->setMaxVelocityX(max_vel_x_);
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
@@ -466,10 +466,10 @@ namespace base_local_planner {
     else if (has_suspect > NONE || footprint_cost == costmap_2d::SUSPECT_OBSTACLE) {
       if (near_field_flag) {
         tc_->setMaxVelocityX(m_suspect_near_field_vel_x);
-        ROS_ERROR("[computeVelocityCommands] %0.2f m/s within %0.2f m near field", m_suspect_near_field_vel_x, m_near_field_distance_);
+        // ROS_ERROR("[computeVelocityCommands] %0.2f m/s within %0.2f m near field", m_suspect_near_field_vel_x, m_near_field_distance_);
       } else{
         tc_->setMaxVelocityX(m_suspect_vel_x_);
-        ROS_ERROR("[computeVelocityCommands] %0.2f m/s lower obstacle", m_suspect_vel_x_);
+        // ROS_ERROR("[computeVelocityCommands] %0.2f m/s lower obstacle", m_suspect_vel_x_);
       }
     }
 	
@@ -499,6 +499,8 @@ namespace base_local_planner {
 
     //check to see if we've reached the goal position
     if (xy_tolerance_latch_ || (getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_)) {
+      // Approaching the destination of the path
+      tc_->setMinVelocityX(0.0);
 
       //if the user wants to latch goal tolerance, if we ever reach the goal location, we'll
       //just rotate in place

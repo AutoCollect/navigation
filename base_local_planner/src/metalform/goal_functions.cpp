@@ -362,6 +362,8 @@ namespace base_local_planner {
       return;
     }
 
+    ROS_ERROR("[mf_initLocalPlan]");
+
     const geometry_msgs::PoseStamped& plan_pose  = global_plan[0];
     try {
       // get plan_to_global_transform from plan frame to global_frame
