@@ -86,6 +86,10 @@ private:
   float control_frequency_;
   // The velocity for driving the robot backwards, (default: -0.3 m/sec)
   float linear_vel_back_;
+
+  // firstly the velocity for driving the robot backwards with slow velocity to avoid the strong vibration of bumper in carpark flat terrain condition
+  // secondly we keep the same with linear_vel_back_ in darryl's hilly paddock
+  float linear_vel_min_back_;
   
   // The distance to move the robot backwards, (default: 1 m)
   float step_back_length_;

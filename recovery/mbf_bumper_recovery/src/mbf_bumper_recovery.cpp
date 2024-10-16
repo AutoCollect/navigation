@@ -71,10 +71,16 @@ void BumperRecovery::initialize(std::string name, tf2_ros::Buffer*, costmap_2d::
   ros::NodeHandle private_nh("~/" + name);
   private_nh.param("control_frequency",  control_frequency_,   20.0f); // The cycle frequency executing the break checks, (default: 20 Hz)
   private_nh.param("linear_vel_back",    linear_vel_back_,     -0.3f); // The velocity for driving the robot backwards, (default: -0.3 m/sec)
+  // firstly the velocity for driving the robot backwards with slow velocity to avoid the strong vibration of bumper in carpark flat terrain condition
+  // secondly we keep the same with linear_vel_back_ in darryl's hilly paddock
+  private_nh.param("linear_vel_min_back",linear_vel_min_back_, -0.3f);
 
   // force the linear velocity to be negative, since the robot should drive backwards.
   if(linear_vel_back_ > 0) 
     linear_vel_back_ = -linear_vel_back_;
+
+  if(linear_vel_min_back_ > 0) 
+    linear_vel_min_back_ = -linear_vel_min_back_;
 
   private_nh.param("step_back_length",    step_back_length_,    1.0f); // The distance to move the robot backwards, (default: 1 m)
   private_nh.param("step_back_timeout",   step_back_timeout_,  15.0f); // The timeout before stopping the robot, (default: 15 sec)
@@ -151,7 +157,7 @@ uint32_t BumperRecovery::runBehavior(std::string &message) {
   // real robot bumper slow release speed
   // avoid produce metalic noise 
   geometry_msgs::Twist slow_vel;
-  slow_vel.linear.x = -0.15;
+  slow_vel.linear.x = linear_vel_min_back_;
 
   //------------------------------------------------
   // timing
