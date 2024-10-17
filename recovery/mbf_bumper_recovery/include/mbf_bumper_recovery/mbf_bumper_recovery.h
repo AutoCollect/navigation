@@ -44,14 +44,11 @@
 #ifndef MBF_BUMPER_RECOVERY_H_
 #define MBF_BUMPER_RECOVERY_H_
 
-#include <mutex>  // semaphore for shared variable
-
 #include <mbf_costmap_core/costmap_recovery.h>
 #include <costmap_2d/costmap_2d_ros.h>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 #include <tf2_ros/buffer.h>
-#include <std_msgs/Bool.h>
 
 namespace mbf_bumper_recovery
 {
@@ -73,13 +70,10 @@ public:
 
 private:
 
-  void bumperCallback(const std_msgs::Bool::ConstPtr& msg);
-
   void publishStop() const;
 
   ros::NodeHandle nh_;
 
-  ros::Subscriber bumper_sub_;
   ros::Publisher cmd_vel_pub_;
 
   // The cycle frequency executing the break checks, (default: 20 Hz)
@@ -98,17 +92,8 @@ private:
 
   costmap_2d::Costmap2DROS* local_costmap_;
 
-  bool bumper_triggered_;
-
   bool initialized_;
   bool canceled_;
-
-  // Initialize the flag to false
-  int debug_print_ = 0;
-
-  // mutex to protect write/write operation shared variable
-  std::mutex m_bumper_op_mtx_;
-
 };
 
 } // namespace mbf_bumper_recovery
