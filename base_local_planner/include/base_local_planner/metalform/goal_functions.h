@@ -97,6 +97,22 @@ namespace base_local_planner {
   void mf_prunePlan(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
 
   /**
+   * @brief  Trim off parts of the global plan that are far enough behind the robot
+   * @param global_pose The pose of the robot in the global frame
+   * @param robot_vel The current velocity of robot
+   * @param plan The plan to be pruned
+   * @param global_plan The plan to be pruned in the frame of the planner
+   */
+  //=====================================================================
+  // Pruning Logic:
+  // 1. Position Check: If the waypoint is within the pruning distance, we consider pruning it.
+  // 2. Direction Check: Using the dot product to verify if the waypoint is ahead.
+  // 3. Orientation Check: Comparing the yaw difference to the threshold.
+  // 4. Pruning Decision: If the waypoint is behind or misaligned beyond the threshold, we continue pruning.
+  //=====================================================================
+  void mf_prunePlanImproved(const geometry_msgs::PoseStamped& global_pose, const geometry_msgs::PoseStamped& robot_vel, std::vector<geometry_msgs::PoseStamped>& plan,  std::vector<geometry_msgs::PoseStamped>& global_plan);
+
+  /**
    * @brief 
    * @param tf A reference to a transform listener
    * @param global_plan The plan to be transformed

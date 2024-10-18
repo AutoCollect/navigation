@@ -477,7 +477,7 @@ namespace base_local_planner {
     odom_helper_.getRobotVel(robot_vel);
     //now we'll prune the plan based on the position of the robot
     if(prune_plan_)
-      mf_prunePlan(global_pose, robot_vel, m_transformed_plan_, global_plan_);
+      mf_prunePlanImproved(global_pose, robot_vel, m_transformed_plan_, global_plan_);
 
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
