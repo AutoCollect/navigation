@@ -172,7 +172,6 @@ namespace base_local_planner {
 
     double min_distance_threshold = std::numeric_limits<double>::max();
     const double orientation_threshold = M_PI / 3; // 60 degrees in radians
-    // int remove_pt_acc = 0;
 
     while (it != plan.end()) {
 
@@ -198,12 +197,6 @@ namespace base_local_planner {
       }
 
       if (distance < 0.25) {
-      // if (distance < 0.25 ||
-          // distance > 2.0) { // still far way start of local plan
-          // distance > 1.0) { // once robot obstacle avoidance, can not remove points
-          // distance > 1.5) { // a little tiny far way start of local plan
-          // distance > 1.25) { // once robot obstacle avoidance, can not remove points
-          // distance > 1.35) {
         break;
       }
 
@@ -211,13 +204,11 @@ namespace base_local_planner {
         min_distance_threshold = distance;
         it = plan.erase(it);
         global_it = global_plan.erase(global_it);
-        // remove_pt_acc ++;
       }
       else {
         break;
       }
     }
-    // ROS_ERROR("[mf_prunePlan] removed pts: %d", remove_pt_acc);
   }
 
   double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
