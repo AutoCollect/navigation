@@ -451,6 +451,7 @@ namespace base_local_planner {
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
       // try to test the jerk in real robot
+      // ROS_ERROR("[computeVelocityCommands] turn flag");
       tc_->setMaxVelocityX(m_turning_vel_x_);
       tc_->setMinVelocityX(m_turning_vel_x_);
 

@@ -529,7 +529,7 @@ namespace base_local_planner {
             tf2::doTransform(pose, newer_pose, plan_to_global_transform);
             transformed_plan.push_back(newer_pose);
             dist_diff  = hypot(newer_pose.pose.position.x - local_goal.pose.position.x, 
-                                      newer_pose.pose.position.y - local_goal.pose.position.y);
+                               newer_pose.pose.position.y - local_goal.pose.position.y);
             angle_diff = getGoalOrientationAngleDifference(newer_pose, goal_th);
             if (dist_diff < epsilon && angle_diff < epsilon) {
               break;
@@ -573,16 +573,25 @@ namespace base_local_planner {
           }
 
           double current_delta = abs(previous_curvature - current_curvature);
-
+          //========================================
+          // if (!std::isnan(current_curvature)  &&
+          //     !std::isnan(previous_curvature) &&
+          //     current_delta > 0.15 &&
+          //     previous_delta > 0.1 &&
+          //     previous_curvature > 0.1) {
+          //   sq_dist_threshold = 5.6025;
+          //   turn_flag = true;
+          // }
+          //========================================
+          // simplified curvature trigger condition for U path
           if (!std::isnan(current_curvature)  &&
               !std::isnan(previous_curvature) &&
-              current_delta > 0.15 &&
-              previous_delta > 0.1 &&
-              previous_curvature > 0.1) {
+              current_delta > 0.5) {
             sq_dist_threshold = 5.6025;
+            // ROS_ERROR("current_delta: %f", current_delta);
             turn_flag = true;
           }
-
+          //========================================
           previous_curvature = current_curvature;
           previous_delta = current_delta;
         }
