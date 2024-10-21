@@ -451,6 +451,7 @@ namespace base_local_planner {
 
     if (turn_flag) { // reduce U turn speed to 0.5 m/s
       // try to test the jerk in real robot
+      // ROS_ERROR("[computeVelocityCommands] turn flag");
       tc_->setMaxVelocityX(m_turning_vel_x_);
       tc_->setMinVelocityX(m_turning_vel_x_);
 
@@ -477,7 +478,7 @@ namespace base_local_planner {
     odom_helper_.getRobotVel(robot_vel);
     //now we'll prune the plan based on the position of the robot
     if(prune_plan_)
-      mf_prunePlan(global_pose, robot_vel, m_transformed_plan_, global_plan_);
+      mf_prunePlanImproved(global_pose, robot_vel, m_transformed_plan_, global_plan_);
 
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
