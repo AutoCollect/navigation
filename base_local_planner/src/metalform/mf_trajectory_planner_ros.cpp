@@ -499,7 +499,9 @@ namespace base_local_planner {
     double goal_th = yaw;
 
     //check to see if we've reached the goal position
-    if (xy_tolerance_latch_ || (getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_)) {
+    // if (xy_tolerance_latch_ || (getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_))
+    // start pose & finish pose are close each other, add global_plan size check less than 50 x 0.05 m = 2.5 m
+    if ((global_plan_.size() < 50) && (xy_tolerance_latch_ || (getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_))) {
       // Approaching the destination of the path
       tc_->setMinVelocityX(0.0);
 
