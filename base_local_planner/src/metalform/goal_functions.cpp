@@ -211,24 +211,39 @@ namespace base_local_planner {
     }
   }
 
-  double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
-                               const geometry_msgs::PoseStamped& p2, 
-                               const geometry_msgs::PoseStamped& p3) {
+  inline double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1,
+                                      const geometry_msgs::PoseStamped& p2,
+                                      const geometry_msgs::PoseStamped& p3) {
 
+    // Calculate the area of the triangle formed by the three points
     double fAreaOfTriangle = fabs((p1.pose.position.x * (p2.pose.position.y - p3.pose.position.y) + 
                                    p2.pose.position.x * (p3.pose.position.y - p1.pose.position.y) + 
                                    p3.pose.position.x * (p1.pose.position.y - p2.pose.position.y)) * 0.5);
-        
+
+    // Handle degenerate cases
+    if (fAreaOfTriangle == 0) {
+      return 0; // Points are collinear or invalid
+    }                           
+
+    // Compute the lengths of the triangle sides:
     double fDist12 = hypot(p1.pose.position.x - p2.pose.position.x, p1.pose.position.y - p2.pose.position.y);
     double fDist23 = hypot(p2.pose.position.x - p3.pose.position.x, p2.pose.position.y - p3.pose.position.y);
     double fDist13 = hypot(p1.pose.position.x - p3.pose.position.x, p1.pose.position.y - p3.pose.position.y);
-    double fKappa  = 4 * fAreaOfTriangle / (fDist12 * fDist23 * fDist13);
+
+    double abc = fDist12 * fDist23 * fDist23;
+    // Handle degenerate cases
+    if (abc == 0) {
+      return 0; // Points are collinear or invalid
+    }
+
+    // Compute the curvature:
+    double fKappa  = 4 * fAreaOfTriangle / abc;
     return fKappa;
   }
 
 
-  double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
-                                 const std::vector<geometry_msgs::PoseStamped>& trajectory) {
+  inline double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose,
+                                        const std::vector<geometry_msgs::PoseStamped>& trajectory) {
 
     // TODO FLANN search
     int num_points = trajectory.size();
