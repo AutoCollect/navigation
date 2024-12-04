@@ -137,6 +137,10 @@ namespace base_local_planner {
    * @param global_frame The frame to transform the plan to
    * @param footprint_cost the current footprint_cost
    * @param near_field_distance near field distacce for lower obstacle bumper collision
+   ************************************************************************************
+   * @param turning_curvature_threshold turning curvature for local goal distance trigger, this condition triggers the change of sq_dist_threshold
+   * @param max_local_goal_square_distance_threshold maximun local goal allowed square distance, by default double sq_dist_threshold = dist_threshold * dist_threshold
+   ************************************************************************************
    * @param transformed_plan Populated with the transformed plan
    * @param turn_flag local goal control the turning speed
    * @param has_suspect low bush detection flag represents the obstacle on road or on local goal
@@ -149,6 +153,8 @@ namespace base_local_planner {
       const std::string& global_frame,
       const double& footprint_cost,
       const double& near_field_distance,
+      const double& turning_curvature_threshold,              // seperate between upath & a2b arbitrary
+      const double& max_local_goal_square_distance_threshold, // seperate between upath & a2b arbitrary
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
       int& has_suspect,
@@ -160,9 +166,13 @@ namespace base_local_planner {
    * @param p2 point 2 coordinate
    * @param p3 point 3 coordinate
    */
-  double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
-                               const geometry_msgs::PoseStamped& p2, 
-                               const geometry_msgs::PoseStamped& p3);
+  inline double curvatureFrom3Points (const geometry_msgs::PoseStamped& p1, 
+                                      const geometry_msgs::PoseStamped& p2, 
+                                      const geometry_msgs::PoseStamped& p3);
+
+  inline double curvatureFrom3PointsImproved(const geometry_msgs::PoseStamped& p1,
+                                             const geometry_msgs::PoseStamped& p2,
+                                             const geometry_msgs::PoseStamped& p3);
 
   /**
    * @brief  Returns last pose in plan
@@ -216,8 +226,8 @@ namespace base_local_planner {
     * @param trajectory current global plan
     * @return a minimum distance 
     */
-  double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
-                                 const std::vector<geometry_msgs::PoseStamped>& trajectory);
+  inline double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose, 
+                                        const std::vector<geometry_msgs::PoseStamped>& trajectory);
 
 };
 #endif

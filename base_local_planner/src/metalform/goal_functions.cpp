@@ -242,6 +242,55 @@ namespace base_local_planner {
   }
 
 
+  inline double curvatureFrom3PointsImproved(const geometry_msgs::PoseStamped& p1,
+                                             const geometry_msgs::PoseStamped& p2,
+                                             const geometry_msgs::PoseStamped& p3) {
+    // Extract positions
+    double x1 = p1.pose.position.x;
+    double y1 = p1.pose.position.y;
+
+    double x2 = p2.pose.position.x;
+    double y2 = p2.pose.position.y;
+
+    double x3 = p3.pose.position.x;
+    double y3 = p3.pose.position.y;
+
+    // Calculate distances between consecutive points
+    double dist12 = std::hypot(x2 - x1, y2 - y1);
+    double dist23 = std::hypot(x3 - x2, y3 - y2);
+
+    // Handle degenerate cases (zero distances)
+    if (dist12 == 0 || dist23 == 0) {
+        return 0.0;
+    }
+
+    // Extract yaw angles using tf2
+    auto getYaw = [](const geometry_msgs::Pose& pose) -> double {
+      tf2::Quaternion quaternion;
+      tf2::fromMsg(pose.orientation, quaternion);
+
+      double roll, pitch, yaw;
+      tf2::Matrix3x3(quaternion).getRPY(roll, pitch, yaw);
+      return yaw;  // Yaw in radians
+    };
+
+    double yaw1 = getYaw(p1.pose);
+    // double yaw2 = getYaw(p2.pose);
+    double yaw3 = getYaw(p3.pose);
+
+    // Calculate yaw change and normalize to [-π, π]
+    double yaw_change = std::fabs(yaw3 - yaw1);
+    if (yaw_change > M_PI) {
+        yaw_change -= 2 * M_PI;
+    }
+
+    // Compute curvature as yaw change per unit distance
+    double curvature = std::fabs(yaw_change) / (dist12 + dist23);
+
+    return curvature;
+  }
+
+
   inline double projectPoseToTrajectory(const geometry_msgs::PoseStamped& robot_pose,
                                         const std::vector<geometry_msgs::PoseStamped>& trajectory) {
 
@@ -494,6 +543,8 @@ namespace base_local_planner {
       const std::string& global_frame,
       const double& footprint_cost,
       const double& near_field_distance,
+      const double& turning_curvature_threshold,              // seperate between upath & a2b arbitrary
+      const double& max_local_goal_square_distance_threshold, // seperate between upath & a2b arbitrary
       std::vector<geometry_msgs::PoseStamped>& transformed_plan,
       bool& turn_flag,
       int& has_suspect,
@@ -568,47 +619,33 @@ namespace base_local_planner {
       int previous_local_plan_size = transformed_plan.size();
       //========================================
       geometry_msgs::PoseStamped newer_pose;
-
-      double current_curvature  = -1000.0;
-      double previous_curvature = -1000.0;
-      bool   init_flag          = false;
-      double previous_delta     = 0.0;
-
       // now we'll transform until points are outside of our distance threshold
       while(i < (unsigned int)global_plan.size() && sq_dist <= sq_dist_threshold) {
         const geometry_msgs::PoseStamped& pose = global_plan[i];
         tf2::doTransform(pose, newer_pose, plan_to_global_transform);
-
+        //========================================
+        // curvature calculation
+        //========================================
+        // if (i > 0 && i < (global_plan.size() - 2)) {
+        //   double current_curvature = curvatureFrom3Points(global_plan[i], global_plan[i+1], global_plan[i+2]);
+        //   if (current_curvature > turning_curvature_threshold) { // upath 1.0, 0.5
+        //     sq_dist_threshold = max_local_goal_square_distance_threshold; // upath 5.6025 = 2.3675 x 2.3675 m
+        //     turn_flag = true;
+        //     // ROS_ERROR("current_curvature: %f", current_curvature);
+        //     // ROS_ERROR("current_curvature: %f, turning_curvature_threshold: %f, max_local_goal_square_distance_threshold: %f", 
+        //     //   current_curvature, turning_curvature_threshold, max_local_goal_square_distance_threshold);
+        //   }
+        // }
+        //========================================
         if (i > 0 && i < (global_plan.size() - 2)) {
-          current_curvature = curvatureFrom3Points(global_plan[i], global_plan[i+1], global_plan[i+2]);
-
-          if (!init_flag) {
-            previous_curvature = current_curvature;
-            init_flag = true;
-          }
-
-          double current_delta = abs(previous_curvature - current_curvature);
-          //========================================
-          // if (!std::isnan(current_curvature)  &&
-          //     !std::isnan(previous_curvature) &&
-          //     current_delta > 0.15 &&
-          //     previous_delta > 0.1 &&
-          //     previous_curvature > 0.1) {
-          //   sq_dist_threshold = 5.6025;
-          //   turn_flag = true;
-          // }
-          //========================================
-          // simplified curvature trigger condition for U path
-          if (!std::isnan(current_curvature)  &&
-              !std::isnan(previous_curvature) &&
-              current_delta > 0.5) {
-            sq_dist_threshold = 5.6025;
-            // ROS_ERROR("current_delta: %f", current_delta);
+          double current_curvature = curvatureFrom3PointsImproved(global_plan[i-1], global_plan[i], global_plan[i+1]);
+          if (current_curvature > turning_curvature_threshold) { // upath 0.3 for curvatureFrom3PointsImproved
+            sq_dist_threshold = max_local_goal_square_distance_threshold; // upath 5.6025 = 2.3675 x 2.3675 m
             turn_flag = true;
+            // ROS_ERROR("current_curvature: %f", current_curvature);
+            // ROS_ERROR("current_curvature: %f, turning_curvature_threshold: %f, max_local_goal_square_distance_threshold: %f", 
+            //   current_curvature, turning_curvature_threshold, max_local_goal_square_distance_threshold);
           }
-          //========================================
-          previous_curvature = current_curvature;
-          previous_delta = current_delta;
         }
         //========================================
         if (i >= previous_local_plan_size) {

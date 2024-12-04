@@ -223,7 +223,21 @@ namespace base_local_planner {
       private_nh.param("turning_vel_x", m_turning_vel_x_, 0.5);
       // near field distacce for lower obstacle bumper collision
       private_nh.param("near_field_distance", m_near_field_distance_, 2.0);
-      
+
+      //==================
+      // local goal params
+      //==================
+      // @param turning_curvature_threshold turning curvature for local goal distance trigger, this condition triggers the change of sq_dist_threshold
+      // upath curvature 1.0, 0.5
+      private_nh.param("turning_curvature_threshold", m_turning_curvature_threshold_, 1.0);
+      // @param max_local_goal_square_distance_threshold maximun local goal allowed square distance, 
+      // by default, double sq_dist_threshold = dist_threshold * dist_threshold, 
+      // m_max_local_goal_square_distance_threshold_ = dist_threshold * dist_threshold
+      // once upath section 5.6025 m^2 = 2.3675 m x 2.3675 m
+      double max_local_goal_distance = 0.0;
+      private_nh.param("max_local_goal_distance", max_local_goal_distance, 2.3675);
+      m_max_local_goal_square_distance_threshold_ = max_local_goal_distance * max_local_goal_distance;
+
       double max_rotational_vel;
       private_nh.param("max_rotational_vel", max_rotational_vel, 1.0);
       max_vel_th_ = max_rotational_vel;
@@ -440,7 +454,9 @@ namespace base_local_planner {
     bool near_field_flag = false;
     //get the global plan in our frame
     //add footprint_cost to make sure low speed 0.3m/s in low bush
-    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_near_field_distance_, m_transformed_plan_, turn_flag, has_suspect, near_field_flag)) {
+    if (!mf_transformGlobalPlan(*tf_, global_plan_, global_pose, *costmap_, global_frame_, footprint_cost, m_near_field_distance_, 
+                                m_turning_curvature_threshold_, m_max_local_goal_square_distance_threshold_,
+                                m_transformed_plan_, turn_flag, has_suspect, near_field_flag)) {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
