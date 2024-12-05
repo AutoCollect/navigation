@@ -249,6 +249,10 @@ namespace base_local_planner {
       double m_turning_vel_x_;
       // near field distacce for lower obstacle bumper collision
       double m_near_field_distance_;
+      // turning curvature for local goal distance trigger, this condition triggers the change of sq_dist_threshold
+      double m_turning_curvature_threshold_;
+      // maximun local goal allowed square distance, by default double sq_dist_threshold = dist_threshold * dist_threshold
+      double m_max_local_goal_square_distance_threshold_;
   };
 };
 #endif
