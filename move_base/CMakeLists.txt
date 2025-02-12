@@ -1,4 +1,12 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.10)
+
+# Suppress developer warnings (equivalent to using -Wno-dev on the command line)
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warnings")
+
+# Set policies to avoid deprecation warnings
+cmake_policy(SET CMP0148 OLD)
+cmake_policy(SET CMP0167 OLD)
+
 project(move_base)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -O3")
@@ -26,7 +34,7 @@ find_package(catkin REQUIRED
         tf2_ros
 )
 find_package(Eigen3 REQUIRED)
-add_definitions(${EIGEN3_DEFINITIONS})
+# add_definitions(${EIGEN3_DEFINITIONS})
 
 # dynamic reconfigure
 generate_dynamic_reconfigure_options(

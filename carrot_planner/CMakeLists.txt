@@ -1,4 +1,12 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.10)
+
+# Suppress developer warnings (equivalent to using -Wno-dev on the command line)
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "Suppress developer warnings")
+
+# Set policies to avoid deprecation warnings
+cmake_policy(SET CMP0148 OLD)
+cmake_policy(SET CMP0167 OLD)
+
 project(carrot_planner)
 
 find_package(catkin REQUIRED
@@ -18,7 +26,7 @@ include_directories(
     include 
     ${catkin_INCLUDE_DIRS}
     )
-add_definitions(${EIGEN3_DEFINITIONS})
+# add_definitions(${EIGEN3_DEFINITIONS})
 
 catkin_package(
   INCLUDE_DIRS include
