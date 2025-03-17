@@ -412,10 +412,15 @@ namespace base_local_planner {
       return false;
     }
 
+    ROS_ERROR("[MFTrajectoryPlannerROS] setPlan");
+
     //reset the global plan
     global_plan_.clear();
     global_plan_ = orig_global_plan;
     
+    // reset the local plan
+    m_transformed_plan_.clear();
+
     //when we get a new plan, we also want to clear any latch we may have on goal tolerances
     xy_tolerance_latch_ = false;
     //reset the at goal flag
@@ -425,6 +430,7 @@ namespace base_local_planner {
 
 
   void MFTrajectoryPlannerROS::initLocalPlan() {
+    ROS_ERROR("[MFTrajectoryPlannerROS] initLocalPlan");
     mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);    
   }
 
