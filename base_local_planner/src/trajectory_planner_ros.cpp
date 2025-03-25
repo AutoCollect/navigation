@@ -623,6 +623,11 @@ namespace base_local_planner {
       ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
       return false;
     }
+
+    if (reached_goal_) {
+      ROS_INFO("[Base Local Planner] GOAL Reached!");
+    }
+
     //return flag set in controller
     return reached_goal_; 
   }
