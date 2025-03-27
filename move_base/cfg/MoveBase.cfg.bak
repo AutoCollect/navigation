@@ -2,26 +2,11 @@
 
 PACKAGE = 'move_base'
 
-from dynamic_reconfigure.parameter_generator_catkin import *
+from dynamic_reconfigure.parameter_generator_catkin import ParameterGenerator, str_t, double_t, bool_t, int_t
 
 gen = ParameterGenerator()
 
-###################################################################
-# Global planner parameters.
-###################################################################
-gen.add("costmap_planner", str_t, 0,
-        "Global planner using costmap interface (MBF). Set to 'NONE' if not available.",
-        "fixed_pattern_planner/FixedPatternPlanner")
-gen.add("base_global_planner", str_t, 0,
-        "Legacy global planner (for move_base compatibility). Set to 'NONE' if not available.",
-        "global_planner/GlobalPlanner")
-
-# Active global planner: specify the key name of the global planner to use.
-gen.add("active_global_planner", str_t, 0,
-        "Key of the active global planner (e.g., 'costmap_planner', 'base_global_planner', etc.).",
-        "base_global_planner")
-###################################################################
-
+gen.add("base_global_planner", str_t, 0, "The name of the plugin for the global planner to use with move_base.", "navfn/NavfnROS")
 gen.add("base_local_planner", str_t, 0, "The name of the plugin for the local planner to use with move_base.", "base_local_planner/TrajectoryPlannerROS")
 
 #gen.add("recovery_behaviors", str_t, 0, "A list of recovery behavior plugins to use with move_base.", "[{name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}, {name: rotate_recovery, type: rotate_recovery/RotateRecovery}, {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}]")
