@@ -39,6 +39,7 @@
 #include <tf2/utils.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <costmap_2d/cost_values.h>
+#include <tf/tf.h>
 #ifdef _MSC_VER
 #define GOAL_ATTRIBUTE_UNUSED
 #else
@@ -111,6 +112,10 @@ namespace base_local_planner {
     }
   }
 
+  // problem:
+  // [computeVelocityCommands] transformed_plan empty
+  // [computeVelocityCommands] Could not transform the global plan to the frame of the controller"
+  /*
   void prunePlan(const geometry_msgs::PoseStamped& global_pose,
                  const geometry_msgs::PoseStamped& robot_vel,
                  std::vector<geometry_msgs::PoseStamped>& plan,
@@ -129,6 +134,63 @@ namespace base_local_planner {
                               (global_pose.pose.position.y - wpt.pose.position.y));
 
       if(distance < 0.25) {
+        break;
+      }
+
+      if (distance < min_distance_threshold) {
+        min_distance_threshold = distance;
+        it = plan.erase(it);
+        global_it = global_plan.erase(global_it);
+      }
+      else {
+        break;
+      }
+    }
+  }
+  */
+
+  // we pick this function from metalfrom/goal_functions.cpp/mf_prunePlanImproved
+  void prunePlan(const geometry_msgs::PoseStamped& global_pose,
+                 const geometry_msgs::PoseStamped& robot_vel,
+                 std::vector<geometry_msgs::PoseStamped>& plan,
+                 std::vector<geometry_msgs::PoseStamped>& global_plan) {
+
+    ROS_ASSERT(global_plan.size() >= plan.size());
+    auto it = plan.begin();
+    auto global_it = global_plan.begin();
+
+    // Get robot's heading
+    double robot_yaw = tf::getYaw(global_pose.pose.orientation);
+    tf2::Vector3 robot_position(global_pose.pose.position.x, global_pose.pose.position.y, 0);
+    tf2::Vector3 robot_heading (std::cos(robot_yaw), std::sin(robot_yaw), 0);
+
+    double min_distance_threshold = std::numeric_limits<double>::max();
+    const double orientation_threshold = M_PI / 3; // 60 degrees in radians
+
+    while (it != plan.end()) {
+
+      const geometry_msgs::PoseStamped& wpt = *it;
+      double distance = hypot((global_pose.pose.position.x - wpt.pose.position.x),
+                              (global_pose.pose.position.y - wpt.pose.position.y));
+
+      tf2::Vector3 waypoint(it->pose.position.x, it->pose.position.y, 0);
+      tf2::Vector3 to_waypoint = waypoint - robot_position;
+
+      // Get waypoint's yaw angle
+      double waypoint_yaw = tf::getYaw(it->pose.orientation);
+
+      // Check if waypoint is ahead of the robot
+      double dot_product = robot_heading.dot(to_waypoint);
+
+      // Calculate yaw difference
+      double yaw_diff = angles::shortest_angular_distance(robot_yaw, waypoint_yaw);
+
+      // Prune waypoint if it's behind the robot or misaligned in orientation
+      if (dot_product > 0 || std::abs(yaw_diff) > orientation_threshold) {
+        break; // Waypoint is ahead, stop pruning
+      }
+
+      if (distance < 0.25) {
         break;
       }
 
