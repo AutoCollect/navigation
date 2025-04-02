@@ -430,7 +430,7 @@ namespace base_local_planner {
 
 
   void MFTrajectoryPlannerROS::initLocalPlan() {
-    ROS_ERROR("[MFTrajectoryPlannerROS] initLocalPlan");
+    ROS_INFO("[MFTrajectoryPlannerROS] initLocalPlan");
     mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);    
   }
 

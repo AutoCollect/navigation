@@ -489,7 +489,7 @@ namespace base_local_planner {
       return;
     }
 
-    ROS_ERROR("[mf_initLocalPlan]");
+    ROS_INFO("[mf_initLocalPlan]");
 
     const geometry_msgs::PoseStamped& plan_pose  = global_plan[0];
     try {
