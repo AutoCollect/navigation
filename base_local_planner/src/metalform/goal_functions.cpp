@@ -604,6 +604,28 @@ namespace base_local_planner {
           }
         }
       }
+      else { // if transformed_plan is empty, we need to init the local plan
+        transformed_plan.clear();
+        // project robot pose onto global plan, to see what the close distace between robot pose & global plan
+        const double epsilon = projectPoseToTrajectory(robot_pose, global_plan);
+        auto global_it = global_plan.begin();
+        while(global_it != global_plan.end()) {
+          const geometry_msgs::PoseStamped& pose = *global_it;
+          geometry_msgs::PoseStamped newer_pose;
+          tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+          transformed_plan.push_back(newer_pose);
+          double dist_diff = hypot(newer_pose.pose.position.x - robot_pose.pose.position.x, 
+                                   newer_pose.pose.position.y - robot_pose.pose.position.y);
+          if (dist_diff <= epsilon) {
+            break;
+          }
+          ++global_it;
+        }
+      }
+
+      // ROS_ERROR("[mf_transformGlobalPlan] x: %f, y: %f, global_plan size: %d, transformed_plan size: %d",
+      //                                         global_pose.pose.position.x, global_pose.pose.position.y,
+      //                                         int(global_plan.size()), int(transformed_plan.size()));
       //========================================
       // calculate max local goal boundary
       // we'll discard points on the plan that are outside the local costmap
