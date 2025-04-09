@@ -729,14 +729,14 @@ namespace base_local_planner {
         //=========================================
         ++i;
       }
-      
+
       unsigned int temp_mx, temp_my;
       if (!transformed_plan.empty() && 
         costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) {
         unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
 
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
+          ROS_ERROR("[mf_transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
             if (i >= global_plan_size) {
@@ -747,6 +747,17 @@ namespace base_local_planner {
             tf2::doTransform(pose, newer_pose, plan_to_global_transform);
             transformed_plan.push_back(newer_pose);
             ++i;
+          }
+          //=========================================
+          // special treatment to avoid API mf_prunePlanImproved
+          // ROS_ASSERT(global_plan.size() >= plan.size());
+          if (transformed_plan.size() > global_plan.size()) {
+            ROS_ERROR("[mf_transformGlobalPlan] INSCRIBED OBSTACLE: trim local plan - global_plan: %d, transformed_plan: %d", 
+                                                                    int(global_plan.size()), int(transformed_plan.size()));
+            // Calculate how many elements to remove from the front.
+            size_t to_remove = transformed_plan.size() - global_plan.size();
+            // Erase the first `to_remove` elements in one operation.
+            transformed_plan.erase(transformed_plan.begin(), transformed_plan.begin() + to_remove);
           }
         }
       }
