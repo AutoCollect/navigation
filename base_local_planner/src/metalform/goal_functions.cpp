@@ -171,7 +171,9 @@ namespace base_local_planner {
     tf2::Vector3 robot_heading (std::cos(robot_yaw), std::sin(robot_yaw), 0);
 
     double min_distance_threshold = std::numeric_limits<double>::max();
-    const double orientation_threshold = M_PI / 3; // 60 degrees in radians
+    // Set a threshold for orientation misalignment
+    // M_PI / 3  60 degrees in radians is sensible for base global planner
+    const double orientation_threshold = M_PI * 0.5; // 90 degrees in radians
 
     while (it != plan.end()) {
 
