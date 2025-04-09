@@ -738,13 +738,19 @@ namespace base_local_planner {
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
           ROS_ERROR("[mf_transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
+          double acc_dist = 0.0;
+          //=========================================
+          // extends local goal to 200 waypoints & distance is less than 2.0 meters
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
-            if (i >= global_plan_size) {
+            if (i >= global_plan_size || acc_dist > 2.0) {
               break;
             }
             const geometry_msgs::PoseStamped& pose = global_plan[i];
             geometry_msgs::PoseStamped newer_pose;
             tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+            acc_dist += getGoalPositionDistance(transformed_plan.back(),
+                                                newer_pose.pose.position.x,
+                                                newer_pose.pose.position.y);
             transformed_plan.push_back(newer_pose);
             ++i;
           }
