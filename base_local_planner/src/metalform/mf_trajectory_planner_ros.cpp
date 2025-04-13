@@ -417,9 +417,12 @@ namespace base_local_planner {
     //reset the global plan
     global_plan_.clear();
     global_plan_ = orig_global_plan;
-    
+
     // reset the local plan
     m_transformed_plan_.clear();
+
+    // ROS_ERROR("[MFTrajectoryPlannerROS] setPlan global_plan size: %d, m_transformed_plan size: %d", 
+    //                                               int(global_plan_.size()), int(m_transformed_plan_.size()));
 
     //when we get a new plan, we also want to clear any latch we may have on goal tolerances
     xy_tolerance_latch_ = false;
@@ -430,8 +433,10 @@ namespace base_local_planner {
 
 
   void MFTrajectoryPlannerROS::initLocalPlan() {
-    ROS_ERROR("[MFTrajectoryPlannerROS] initLocalPlan");
-    mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);    
+    ROS_INFO("[MFTrajectoryPlannerROS] initLocalPlan");
+    // ROS_INFO("[MFTrajectoryPlannerROS] initLocalPlan global_plan size: %d, m_transformed_plan size: %d", 
+    //                                               int(global_plan_.size()), int(m_transformed_plan_.size()));
+    mf_initLocalPlan(*tf_, global_plan_, global_frame_, m_transformed_plan_);
   }
 
 
@@ -466,6 +471,8 @@ namespace base_local_planner {
       ROS_ERROR("[computeVelocityCommands] Could not transform the global plan to the frame of the controller");
       return false;
     }
+
+    // ROS_ERROR("[mf_transformGlobalPlan] global_plan size: %d, m_transformed_plan size: %d", int(global_plan_.size()), int(m_transformed_plan_.size()));
 
     // speed initiation each control cycle
     tc_->setMinVelocityX(min_vel_x_);
@@ -505,9 +512,12 @@ namespace base_local_planner {
     geometry_msgs::PoseStamped drive_cmds;
     drive_cmds.header.frame_id = robot_base_frame_;
 
+    // ROS_ERROR("[MFcomputeVelocityCommands] prune_plan: %d, global_plan size: %d, m_transformed_plan size: %d", 
+    //               prune_plan_, int(global_plan_.size()), int(m_transformed_plan_.size()));
+
     //if the global plan passed in is empty... we won't do anything
     if(m_transformed_plan_.empty()) {
-      ROS_ERROR("[computeVelocityCommands] transformed_plan empty");
+      ROS_ERROR("[MFcomputeVelocityCommands] transformed_plan empty");
       return false;
     }
 

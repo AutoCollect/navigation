@@ -171,7 +171,9 @@ namespace base_local_planner {
     tf2::Vector3 robot_heading (std::cos(robot_yaw), std::sin(robot_yaw), 0);
 
     double min_distance_threshold = std::numeric_limits<double>::max();
-    const double orientation_threshold = M_PI / 3; // 60 degrees in radians
+    // Set a threshold for orientation misalignment
+    // M_PI / 3  60 degrees in radians is sensible for base global planner
+    const double orientation_threshold = M_PI * 0.5; // 90 degrees in radians
 
     while (it != plan.end()) {
 
@@ -489,7 +491,7 @@ namespace base_local_planner {
       return;
     }
 
-    ROS_ERROR("[mf_initLocalPlan]");
+    ROS_INFO("[mf_initLocalPlan]");
 
     const geometry_msgs::PoseStamped& plan_pose  = global_plan[0];
     try {
@@ -604,6 +606,28 @@ namespace base_local_planner {
           }
         }
       }
+      else { // if transformed_plan is empty, we need to init the local plan
+        transformed_plan.clear();
+        // project robot pose onto global plan, to see what the close distace between robot pose & global plan
+        const double epsilon = projectPoseToTrajectory(robot_pose, global_plan);
+        auto global_it = global_plan.begin();
+        while(global_it != global_plan.end()) {
+          const geometry_msgs::PoseStamped& pose = *global_it;
+          geometry_msgs::PoseStamped newer_pose;
+          tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+          transformed_plan.push_back(newer_pose);
+          double dist_diff = hypot(newer_pose.pose.position.x - robot_pose.pose.position.x, 
+                                   newer_pose.pose.position.y - robot_pose.pose.position.y);
+          if (dist_diff <= epsilon) {
+            break;
+          }
+          ++global_it;
+        }
+      }
+
+      // ROS_ERROR("[mf_transformGlobalPlan] x: %f, y: %f, global_plan size: %d, transformed_plan size: %d",
+      //                                         global_pose.pose.position.x, global_pose.pose.position.y,
+      //                                         int(global_plan.size()), int(transformed_plan.size()));
       //========================================
       // calculate max local goal boundary
       // we'll discard points on the plan that are outside the local costmap
@@ -707,24 +731,41 @@ namespace base_local_planner {
         //=========================================
         ++i;
       }
-      
+
       unsigned int temp_mx, temp_my;
       if (!transformed_plan.empty() && 
         costmap.worldToMap(transformed_plan.back().pose.position.x, transformed_plan.back().pose.position.y, temp_mx, temp_my)) {
         unsigned char temp_cost = costmap.getCost(temp_mx, temp_my);
 
         if(temp_cost >= costmap_2d::INSCRIBED_INFLATED_OBSTACLE) {
-          ROS_ERROR("[transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
+          ROS_ERROR("[mf_transformGlobalPlan] INSCRIBED OBSTACLE: extend local goal");
           int global_plan_size = global_plan.size() - 1;
+          double acc_dist = 0.0;
+          //=========================================
+          // extends local goal to 200 waypoints & distance is less than 2.0 meters
           for (int test_idx = 0; test_idx <= 200; test_idx++) {
-            if (i >= global_plan_size) {
+            if (i >= global_plan_size || acc_dist > 2.0) {
               break;
             }
             const geometry_msgs::PoseStamped& pose = global_plan[i];
             geometry_msgs::PoseStamped newer_pose;
             tf2::doTransform(pose, newer_pose, plan_to_global_transform);
+            acc_dist += getGoalPositionDistance(transformed_plan.back(),
+                                                newer_pose.pose.position.x,
+                                                newer_pose.pose.position.y);
             transformed_plan.push_back(newer_pose);
             ++i;
+          }
+          //=========================================
+          // special treatment to avoid API mf_prunePlanImproved
+          // ROS_ASSERT(global_plan.size() >= plan.size());
+          if (transformed_plan.size() > global_plan.size()) {
+            ROS_ERROR("[mf_transformGlobalPlan] INSCRIBED OBSTACLE: trim local plan - global_plan: %d, transformed_plan: %d", 
+                                                                    int(global_plan.size()), int(transformed_plan.size()));
+            // Calculate how many elements to remove from the front.
+            size_t to_remove = transformed_plan.size() - global_plan.size();
+            // Erase the first `to_remove` elements in one operation.
+            transformed_plan.erase(transformed_plan.begin(), transformed_plan.begin() + to_remove);
           }
         }
       }
